@@ -269,15 +269,20 @@ function drawChart(host, daily, opts) {
         root.append(t);
     }
 
-    // Label roughly six evenly spaced days, always including the last
+    // Short ranges: label roughly six evenly spaced days, always including the last.
+    // The 1-year range labels month starts ("Jan 2026"); "Jan 24" there read like a year.
     const every = Math.max(1, Math.ceil(daily.length / 6));
+    const monthly = daily.length > 90;
+    const monthStarts = monthly ? daily.flatMap((d, i) => (d.date.endsWith('-01') ? [i] : [])) : [];
+    const monthEvery = Math.max(1, Math.ceil((monthStarts.length * 72) / plotW));  // ~72px per label
+    const monthLabels = new Set(monthStarts.filter((_, k) => (monthStarts.length - 1 - k) % monthEvery === 0));
     const tooltip = el('div', { class: 'tooltip' });
 
     daily.forEach((d, i) => {
         const cx = m.left + slot * i + slot / 2;
-        if ((daily.length - 1 - i) % every === 0) {
+        if (monthly ? monthLabels.has(i) : (daily.length - 1 - i) % every === 0) {
             const t = svg('text', { x: cx, y: height - 6, 'text-anchor': 'middle' });
-            t.textContent = fmtDay(d.date);
+            t.textContent = monthly ? fmtDay(d.date, { month: 'short', year: 'numeric' }) : fmtDay(d.date);
             root.append(t);
         }
         let bar = null;

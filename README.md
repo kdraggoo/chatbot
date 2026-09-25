@@ -1,5 +1,49 @@
 # draggoo.com chatbot
 
+Ask questions about my career at **[draggoo.com/chatbot](https://www.draggoo.com/chatbot/)**. It is a self-hosted RAG system: no third-party LLM APIs, no data leaving the server.
+
+![Dashboard](docs/dashboard.png)
+
+## Why I built it
+
+I'm a product manager who builds. I wanted to learn RAG by shipping a real system end to end, then running it like a product: monitoring, usage data, and tuning based on what people actually ask.
+
+## Key decisions
+
+- **Local models over hosted APIs.** Zero per-query cost and full control of the data. The tradeoff is speed on modest hardware.
+- **llama3.2:3b in production instead of 8B.** The chatbot shares a general-purpose web server with no GPU. On that hardware, the 3B model responded noticeably faster while answer quality stayed acceptable for a narrow domain like resume questions.
+- **A similarity floor (0.4) instead of always answering.** Chunks below the threshold are dropped, so the model answers from relevant context or not at all. I track the "no relevant context" rate to catch knowledge gaps.
+- **Observability from day one.** Health checks, an hourly end-to-end probe, and a usage dashboard. A `/diagnostic` endpoint shows retrieval scores for any query so I can tune without guessing.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  U[Browser] --> N[nginx]
+  N --> A[FastAPI]
+  A -->|embed query| O[Ollama: bge-m3]
+  A -->|vector search| Q[Qdrant]
+  A -->|generate, streamed| L[Ollama: llama3.2:3b]
+  A --> S[(SQLite usage log)]
+```
+
+## Results so far
+
+- 95 questions, 84 answered
+- Median response 42s, p95 48s. Generation is CPU-bound on a shared web server that wasn't sized for inference.
+- 11% error rate, all from generation timeouts on the CPU-bound server.
+- Hourly probe: 100% success
+
+## What I'd do next
+
+1. **Right-size the infrastructure**: move inference to a GPU host or a dedicated inference box, targeting under 5 seconds to first token. Until then, show retrieved sources immediately so users aren't staring at a spinner.
+2. **Handle timeouts gracefully**: return retrieved sources with a "still thinking" message instead of an error, so no question fails outright.
+3. **Automated evals**: a golden question set scored on every change, replacing manual test scripts.
+4. **Retrieval quality**: add a reranker and hybrid keyword plus vector search.
+5. **Fail closed**: refuse to start without an admin key, and protect `/diagnostic`.
+
+## The technical stuff
+
 A self-hosted RAG (retrieval-augmented generation) chatbot that answers questions about Kevin Draggoo's resume and career. It runs at [www.draggoo.com/chatbot/](https://www.draggoo.com/chatbot/).
 
 Everything runs locally on one server: no third-party LLM APIs.

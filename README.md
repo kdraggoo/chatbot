@@ -3,6 +3,20 @@
 ## What it is
 Ask questions about my career at **[draggoo.com/chatbot](https://www.draggoo.com/chatbot/)**. It is a self-hosted RAG system: no third-party LLM APIs, no data leaving the server.
 
+## User Interface
+
+### Chatbot
+
+![Chatbot](docs/chatbot.png)
+
+### Admin
+
+![Admin](docs/admin.png)
+
+### Dashboard
+
+![Dashboard](docs/dashboard.png)
+
 ## Why I built it
 
 I'm a product manager who builds. I wanted to learn RAG by shipping a real system end to end, then running it like a product: monitoring, usage data, and tuning based on what people actually ask.
@@ -41,25 +55,7 @@ flowchart LR
 4. **Retrieval quality**: add a reranker and hybrid keyword plus vector search.
 5. **Fail closed**: refuse to start without an admin key, and protect `/diagnostic`.
 
-## User Interface
-
-### Chatbot
-
-![Dashboard](docs/chatbot.png)
-
-### Admin
-
-![Dashboard](docs/admin.png)
-
-### Dashboard
-
-![Dashboard](docs/dashboard.png)
-
 ## The technical stuff
-
-A self-hosted RAG (retrieval-augmented generation) chatbot that answers questions about Kevin Draggoo's resume and career. It runs at [www.draggoo.com/chatbot/](https://www.draggoo.com/chatbot/).
-
-Everything runs locally on one server: no third-party LLM APIs.
 
 - **FastAPI** (`app/main.py`) embeds the question, retrieves matching chunks and builds the prompt
 - **Qdrant** stores the document chunks as vectors

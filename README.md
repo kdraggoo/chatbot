@@ -31,7 +31,7 @@ flowchart LR
 
 - 95 questions, 84 answered
 - Median response 42s, p95 48s. Generation is CPU-bound on a shared web server that wasn't sized for inference.
-- 11% error rate, all from generation timeouts on the CPU-bound server.
+- 10 errors (11%), all on launch day during setup; none since.
 - Hourly probe: 100% success
 
 ## What I'd do next

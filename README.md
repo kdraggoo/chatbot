@@ -1,8 +1,7 @@
 # draggoo.com chatbot
 
+## What it is
 Ask questions about my career at **[draggoo.com/chatbot](https://www.draggoo.com/chatbot/)**. It is a self-hosted RAG system: no third-party LLM APIs, no data leaving the server.
-
-![Dashboard](docs/dashboard.png)
 
 ## Why I built it
 
@@ -41,6 +40,20 @@ flowchart LR
 3. **Automated evals**: a golden question set scored on every change, replacing manual test scripts.
 4. **Retrieval quality**: add a reranker and hybrid keyword plus vector search.
 5. **Fail closed**: refuse to start without an admin key, and protect `/diagnostic`.
+
+## User Interface
+
+### Chatbot
+
+![Dashboard](docs/chatbot.png)
+
+### Admin
+
+![Dashboard](docs/admin.png)
+
+### Dashboard
+
+![Dashboard](docs/dashboard.png)
 
 ## The technical stuff
 

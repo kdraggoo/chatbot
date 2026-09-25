@@ -48,7 +48,17 @@ STATS_DB = os.getenv("STATS_DB", "/stats/chat.db")  # SQLite chat log for the da
 STATS_RETENTION_DAYS = int(os.getenv("STATS_RETENTION_DAYS", "90"))
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+def client_address(request: Request) -> str:
+    """Visitor IP for rate limiting and logs.
+
+    nginx overwrites X-Real-IP with the address it saw, so a client can't spoof it.
+    Requests that skip nginx (host curl, probe.sh on 127.0.0.1:18000) have no
+    header and fall back to the socket address.
+    """
+    return request.headers.get("x-real-ip") or get_remote_address(request)
+
+
+limiter = Limiter(key_func=client_address)
 
 # Query analytics storage (in-memory, could be persisted to file/db)
 query_analytics = defaultdict(int)
@@ -579,7 +589,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
 
     # Query analytics logging
     query_analytics[query[:50]] += 1
-    client_ip = get_remote_address(request)
+    client_ip = client_address(request)
     logger.info(f"Processing chat query from {client_ip}: {query[:100]}... (stream={stream})")
 
     # Prepare RAG context

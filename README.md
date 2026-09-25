@@ -40,7 +40,7 @@ flowchart LR
   A --> S[(SQLite usage log)]
 ```
 
-## Results so far
+## Results (as of Sep 25, 2026)
 
 - 95 questions, 84 answered
 - Median response 42s, p95 48s. Generation is CPU-bound on a shared web server that wasn't sized for inference.

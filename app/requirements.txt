@@ -1,0 +1,12 @@
+# /srv/chatbot/app/requirements.txt
+fastapi==0.115.5
+uvicorn[standard]==0.32.0
+python-dotenv==1.0.1
+httpx==0.27.0
+qdrant-client==1.12.1
+striprtf==0.0.29
+pypandoc==1.16.2
+python-docx==1.2.0
+pymupdf==1.24.0
+tenacity==8.2.3
+slowapi==0.1.9

@@ -1,0 +1,14 @@
+# Secrets
+.env
+!.env.example
+
+# Private data: source documents and the chat log (contains visitor questions)
+data/
+undata/
+data.old/
+stats/
+
+# Backups and caches
+*.bak-*
+__pycache__/
+*.pyc

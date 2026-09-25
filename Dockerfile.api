@@ -1,0 +1,31 @@
+# /srv/chatbot/Dockerfile.api
+FROM python:3.11-slim
+
+# Install system dependencies for document processing
+# - pandoc: universal document converter (used by pypandoc)
+# - antiword: lightweight .doc file reader (most reliable for .doc files)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pandoc \
+    antiword \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify tools are installed and accessible
+RUN which pandoc && which antiword && pandoc --version > /dev/null && antiword -h > /dev/null 2>&1 || true
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY app/requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app/ .
+
+# Expose port
+EXPOSE 8000
+
+# Run uvicorn (dependencies already installed at build time)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

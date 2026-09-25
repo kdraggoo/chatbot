@@ -1,0 +1,246 @@
+<!-- /srv/chatbot/app/dashboard.html -->
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Chatbot Dashboard</title>
+		<style>
+			:root {
+				--bg: #0a0a0a;
+				--panel: #000;
+				--line: #2a2a2a;
+				--grid: #1c1c1c;
+				--accent: #ffaa00;
+				--text: #d8ffe0;
+				--text-2: #00ff41;
+				--muted: #8a9a8c;
+				--ok: #00ff41;
+				--bad: #ff5555;
+				--bar: #ffaa00;
+				--bar-hover: #ffc94d;
+			}
+
+			* { box-sizing: border-box; margin: 0; padding: 0; }
+
+			body {
+				font-family: 'Courier New', monospace;
+				background: var(--bg);
+				color: var(--text);
+				font-size: 14px;
+				line-height: 1.4;
+			}
+
+			.header {
+				padding: 1rem;
+				border-bottom: 1px solid var(--accent);
+				background: var(--panel);
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.75rem;
+				align-items: center;
+				justify-content: space-between;
+			}
+
+			.header h1 {
+				font-size: 1.2rem;
+				letter-spacing: 2px;
+				color: var(--accent);
+				text-shadow: 0 0 10px var(--accent);
+			}
+
+			.header p { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; }
+
+			.controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+			button, input {
+				font-family: inherit;
+				font-size: 0.85rem;
+				background: var(--bg);
+				color: var(--accent);
+				border: 1px solid #664400;
+				border-radius: 4px;
+				padding: 0.35rem 0.6rem;
+			}
+
+			button { cursor: pointer; }
+			button:hover, button:focus-visible { border-color: var(--accent); outline: none; }
+			button[aria-pressed="true"] { background: #221600; border-color: var(--accent); }
+
+			main { padding: 1rem; display: grid; gap: 1rem; max-width: 1200px; margin: 0 auto; }
+
+			section {
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: 4px;
+				padding: 1rem;
+				min-width: 0;
+			}
+
+			h2 {
+				font-size: 0.85rem;
+				color: var(--accent);
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				margin-bottom: 0.75rem;
+			}
+
+			.sub { color: var(--muted); font-size: 0.8rem; }
+
+			#auth { display: none; }
+			#auth.show { display: block; }
+			#auth form { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+			#auth input { flex: 1 1 220px; }
+			#message { color: var(--bad); }
+
+			.services { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
+			.service { border: 1px solid var(--line); border-radius: 4px; padding: 0.6rem 0.75rem; }
+			.service .name { color: var(--muted); font-size: 0.8rem; }
+			.service .state { font-weight: bold; margin-top: 0.2rem; }
+			.service .state.ok { color: var(--ok); }
+			.service .state.bad { color: var(--bad); }
+			.service .detail { color: var(--muted); font-size: 0.75rem; margin-top: 0.2rem; overflow-wrap: anywhere; }
+
+			.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
+			.tile { border: 1px solid var(--line); border-radius: 4px; padding: 0.75rem; }
+			.tile .label { color: var(--muted); font-size: 0.8rem; }
+			.tile .value { font-size: 1.8rem; font-weight: bold; color: var(--text); margin-top: 0.2rem; }
+			.tile.hero .value { font-size: 3rem; color: var(--accent); }
+			.tile .note { color: var(--muted); font-size: 0.75rem; margin-top: 0.2rem; }
+
+			.chart { position: relative; margin-top: 0.5rem; }
+			.chart svg { display: block; width: 100%; height: 220px; overflow: visible; }
+			.chart text { fill: var(--muted); font-family: inherit; font-size: 11px; font-variant-numeric: tabular-nums; }
+			.chart .grid { stroke: var(--grid); stroke-width: 1; }
+			.chart .baseline { stroke: #3a3a3a; stroke-width: 1; }
+			.chart .bar { fill: var(--bar); }
+			.chart .slot { fill: transparent; cursor: default; }
+			.chart .bar.active { fill: var(--bar-hover); }
+			.chart .bar.bad { fill: var(--bad); }
+			.tile.good .value { color: var(--ok); }
+			.tile.badtile .value { color: var(--bad); }
+			td.muted { color: var(--muted); font-style: italic; }
+
+			.tooltip {
+				position: absolute;
+				pointer-events: none;
+				background: #111;
+				border: 1px solid var(--accent);
+				border-radius: 4px;
+				padding: 0.4rem 0.55rem;
+				font-size: 0.8rem;
+				white-space: nowrap;
+				transform: translate(-50%, calc(-100% - 8px));
+				display: none;
+			}
+			.tooltip .t-date { color: var(--muted); }
+
+			details { margin-top: 0.75rem; }
+			summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
+
+			.table-wrap { overflow-x: auto; }
+			table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+			th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--grid); vertical-align: top; }
+			th { color: var(--muted); font-weight: normal; white-space: nowrap; }
+			td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+			td.when { white-space: nowrap; color: var(--muted); }
+			td.q { min-width: 16rem; overflow-wrap: anywhere; }
+			.status-ok { color: var(--ok); white-space: nowrap; }
+			.status-error { color: var(--bad); white-space: nowrap; }
+			.status-aborted { color: var(--muted); white-space: nowrap; }
+			.empty { color: var(--muted); padding: 0.5rem 0; }
+
+			.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; }
+
+			dl.config { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; font-size: 0.82rem; }
+			dl.config dt { color: var(--muted); }
+			dl.config dd { overflow-wrap: anywhere; }
+
+			@media (max-width: 480px) {
+				.two-col { grid-template-columns: 1fr; }
+				.tile.hero .value { font-size: 2.4rem; }
+			}
+		</style>
+	</head>
+	<body>
+		<div class="header">
+			<div>
+				<h1>// CHATBOT DASHBOARD</h1>
+				<p id="updated">Loading…</p>
+			</div>
+			<div class="controls" role="group" aria-label="Time range">
+				<button type="button" data-days="7">7d</button>
+				<button type="button" data-days="30">30d</button>
+				<button type="button" data-days="90">90d</button>
+				<button type="button" data-days="365">1y</button>
+				<button type="button" id="refresh">Refresh</button>
+				<button type="button" id="forget">Forget key</button>
+			</div>
+		</div>
+
+		<main>
+			<section id="auth">
+				<h2>API key required</h2>
+				<p class="sub">Uses the same admin key as <a href="/chatbot/admin" style="color: var(--accent)">/chatbot/admin</a>. It is kept in this browser only.</p>
+				<form id="authForm">
+					<input type="password" id="apiKey" placeholder="Admin API key" autocomplete="off" aria-label="Admin API key">
+					<button type="submit">Unlock</button>
+				</form>
+				<p id="message"></p>
+			</section>
+
+			<div id="content" hidden>
+				<div style="display: grid; gap: 1rem;">
+					<section>
+						<h2>Services</h2>
+						<div class="services" id="services"></div>
+					</section>
+
+					<section>
+						<h2 id="usageTitle">Usage</h2>
+						<div class="tiles" id="tiles"></div>
+					</section>
+
+					<section>
+						<h2>Questions per day</h2>
+						<p class="sub" id="chartSub"></p>
+						<div class="chart" id="chart"></div>
+						<details>
+							<summary>Show as table</summary>
+							<div class="table-wrap" id="dailyTable"></div>
+						</details>
+					</section>
+
+					<section>
+						<h2>Monitoring</h2>
+						<p class="sub">An hourly probe (chatbot-probe.timer) asks a known question through the full pipeline. Probe runs are not counted in usage. Bars show the median response time per day; red means at least one run failed.</p>
+						<div class="tiles" id="probeTiles" style="margin-top: 0.75rem;"></div>
+						<div class="chart" id="probeChart"></div>
+					</section>
+					<section>
+						<h2>Recent questions</h2>
+						<div class="table-wrap" id="recent"></div>
+					</section>
+
+					<div class="two-col">
+						<section>
+							<h2>Most asked</h2>
+							<div class="table-wrap" id="top"></div>
+						</section>
+						<section>
+							<h2>Settings</h2>
+							<dl class="config" id="config"></dl>
+						</section>
+					</div>
+
+					<section>
+						<h2 id="kbTitle">Knowledge base</h2>
+						<div class="table-wrap" id="kb"></div>
+					</section>
+				</div>
+			</div>
+		</main>
+
+		<script src="/chatbot/dashboard.js"></script>
+	</body>
+</html>

@@ -1,0 +1,93 @@
+# /srv/chatbot/docker-compose.yml
+
+x-common-env: &common_env
+  # Reach sibling services via Docker DNS
+  OLLAMA_URL: http://ollama:11434
+  QDRANT_URL: http://qdrant:6333
+  QDRANT_COLLECTION: ${QDRANT_COLLECTION:-docs}
+  GEN_MODEL: ${GEN_MODEL:-llama3.1:8b}
+  EMBED_MODEL: ${EMBED_MODEL:-bge-m3}
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - chatbot-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - chatbot-net
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  api:
+    restart: unless-stopped
+    build:
+      context: /srv/chatbot
+      dockerfile: Dockerfile.api
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      <<: *common_env
+    volumes:
+      - ./app:/app
+      - ./data:/data
+      - ./undata:/undata
+      - ./stats:/stats      # SQLite chat log for /chatbot/dashboard
+    # Dependencies installed at build time, just run uvicorn
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    # Expose to host ONLY for Nginx proxy
+    ports:
+      - "127.0.0.1:18000:8000"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    networks:
+      - chatbot-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/livez"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# Optional local UI for exploration (disabled by default)
+# openwebui:
+#   image: ghcr.io/open-webui/open-webui:latest
+#   restart: unless-stopped
+#   environment:
+#     - OLLAMA_BASE_URL=http://ollama:11434
+#   ports:
+#     - "127.0.0.1:18001:8080"
+#   networks:
+#     - chatbot-net
+
+volumes:
+  qdrant_data:
+  ollama_data:
+
+networks:
+  chatbot-net:
+    driver: bridge

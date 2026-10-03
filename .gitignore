@@ -12,3 +12,6 @@ stats/
 *.bak-*
 __pycache__/
 *.pyc
+
+# Eval run output (contains generated answers)
+app/evals/results/

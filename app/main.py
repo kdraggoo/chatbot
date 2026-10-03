@@ -46,6 +46,58 @@ ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")  # Admin API key for authenticati
 RATE_LIMIT = os.getenv("RATE_LIMIT", "10/minute")  # Rate limit for /chat endpoint
 STATS_DB = os.getenv("STATS_DB", "/stats/chat.db")  # SQLite chat log for the dashboard
 STATS_RETENTION_DAYS = int(os.getenv("STATS_RETENTION_DAYS", "90"))
+# Words dropped from the query before embedding it for search. Every document is
+# about the same person, so their name matches every chunk equally and drowns out
+# the words that say what the question is about. Comma-separated.
+RETRIEVAL_STRIP_WORDS = [w.strip() for w in os.getenv("RETRIEVAL_STRIP_WORDS", "").split(",") if w.strip()]
+_strip_re = re.compile(
+    r"\b(?:" + "|".join(map(re.escape, RETRIEVAL_STRIP_WORDS)) + r")(?:['’]s)?\b", re.IGNORECASE
+) if RETRIEVAL_STRIP_WORDS else None
+RETRIEVAL_STRIP_SLOTS = int(os.getenv("RETRIEVAL_STRIP_SLOTS", "1"))  # context slots kept for that search
+
+
+def retrieval_query(query: str) -> str:
+    """The query as embedded for search: RETRIEVAL_STRIP_WORDS removed, unless nothing would be left."""
+    if not _strip_re:
+        return query
+    stripped = re.sub(r"\s+", " ", _strip_re.sub("", query)).strip()
+    return stripped if re.search(r"\w", stripped) else query
+
+
+async def search_chunks(query: str, limit: int) -> list:
+    """Vector search for a query, best first.
+
+    With RETRIEVAL_STRIP_WORDS set, it also searches with those words removed, and
+    that search's top RETRIEVAL_STRIP_SLOTS hit(s) go first. The name helps questions
+    whose answer sits next to it (the resume header and summary), so the normal
+    search still fills the other slots. Raises HTTPException(502) on failure.
+    """
+    queries = list(dict.fromkeys([query, retrieval_query(query)]))
+    rankings = []
+    for q in queries:
+        try:
+            vec = await embed_query(q)
+        except Exception as e:
+            logger.error(f"Embedding error: {e}")
+            raise HTTPException(status_code=502, detail=f"Embedding error: {e}")
+        try:
+            rankings.append(qdrant_client.search(
+                collection_name=QDRANT_COLLECTION, query_vector=vec, limit=limit, with_payload=True,
+            ))
+        except Exception as e:
+            logger.error(f"Qdrant search error: {e}")
+            raise HTTPException(status_code=502, detail=f"Qdrant error: {e}")
+    if len(rankings) == 1:
+        return rankings[0]
+
+    full, stripped = rankings
+    reserved = [p for p in stripped if p.score >= MIN_SIMILARITY_SCORE][:RETRIEVAL_STRIP_SLOTS]
+    seen, merged = set(), []
+    for point in reserved + full:
+        if point.id not in seen:
+            seen.add(point.id)
+            merged.append(point)
+    return merged[:limit]
 
 # Initialize rate limiter
 def client_address(request: Request) -> str:
@@ -296,23 +348,7 @@ async def diagnostic(req: ChatRequest):
     query = req.query
     logger.info(f"Diagnostic query: {query[:100]}...")
     
-    try:
-        query_vec = await embed_query(query)
-    except Exception as e:
-        logger.error(f"Embedding error: {e}")
-        raise HTTPException(status_code=502, detail=f"Embedding error: {e}")
-    
-    try:
-        # Get more results for analysis
-        search_res = qdrant_client.search(
-            collection_name=QDRANT_COLLECTION,
-            query_vector=query_vec,
-            limit=MAX_CONTEXT_CHUNKS * 3,  # Get more for analysis
-            with_payload=True,
-        )
-    except Exception as e:
-        logger.error(f"Qdrant search error: {e}")
-        raise HTTPException(status_code=502, detail=f"Qdrant error: {e}")
+    search_res = await search_chunks(query, MAX_CONTEXT_CHUNKS * 3)  # more results for analysis
     
     # Analyze all results
     all_chunks = []
@@ -398,33 +434,16 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
     is_list_query = any(word in query.lower() for word in ["list", "all", "every", "complete", "entire", "full"])
     is_employment_list = is_list_query and any(word in query.lower() for word in ["employer", "employment", "worked", "work history", "job history", "companies", "company"])
     
-    # 1) Embed the query
-    try:
-        query_vec = await embed_query(query)
-    except Exception as e:
-        logger.error(f"Embedding error: {e}")
-        raise HTTPException(status_code=502, detail=f"Embedding error: {e}")
-
-    # 2) Search Qdrant for top-k chunks
-    try:
-        # Retrieve more chunks than needed, then filter by score
-        # For employment list queries, be even more aggressive with retrieval
-        if is_employment_list:
-            retrieve_limit = MAX_CONTEXT_CHUNKS * 2  # Retrieve 20 chunks, use ~12 in context
-            logger.info(f"Employment list query detected: Retrieving up to {retrieve_limit} chunks (will use ~{int(MAX_CONTEXT_CHUNKS * 1.2)} in context)")
-        else:
-            is_list_query_local = any(word in query.lower() for word in ["list", "all", "every", "complete"])
-            retrieve_limit = MAX_CONTEXT_CHUNKS * 4 if is_list_query_local else MAX_CONTEXT_CHUNKS * 2
-        search_res = qdrant_client.search(
-            collection_name=QDRANT_COLLECTION,
-            query_vector=query_vec,
-            limit=retrieve_limit,
-            with_payload=True,
-        )
-        logger.info(f"Retrieved {len(search_res)} chunks from Qdrant (requested: {retrieve_limit})")
-    except Exception as e:
-        logger.error(f"Qdrant search error: {e}")
-        raise HTTPException(status_code=502, detail=f"Qdrant error: {e}")
+    # Search Qdrant: retrieve more chunks than needed, then filter by score
+    # For employment list queries, be even more aggressive with retrieval
+    if is_employment_list:
+        retrieve_limit = MAX_CONTEXT_CHUNKS * 2  # Retrieve 20 chunks, use ~12 in context
+        logger.info(f"Employment list query detected: Retrieving up to {retrieve_limit} chunks (will use ~{int(MAX_CONTEXT_CHUNKS * 1.2)} in context)")
+    else:
+        is_list_query_local = any(word in query.lower() for word in ["list", "all", "every", "complete"])
+        retrieve_limit = MAX_CONTEXT_CHUNKS * 4 if is_list_query_local else MAX_CONTEXT_CHUNKS * 2
+    search_res = await search_chunks(query, retrieve_limit)
+    logger.info(f"Retrieved {len(search_res)} chunks from Qdrant (requested: {retrieve_limit})")
 
     # Filter by score and collect contexts with metadata
     contexts = []

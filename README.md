@@ -77,7 +77,8 @@ flowchart LR
 | `app/rag/ingest.py` | Command-line document ingester (`.txt .md .rtf .doc .docx .odt .ott .pdf`) |
 | `app/admin.html`, `admin.js` | Admin UI: add, list and delete documents |
 | `app/dashboard.html`, `dashboard.js` | Dashboard: service health, usage, monitoring, knowledge base |
-| `app/test_quality.py`, `test_kevin_query.py` | Manual scripts that call the live API (there is no test suite) |
+| `app/evals/` | Eval harness: golden question set (`cases.yaml`) and runner (`run.py`) |
+| `app/test_quality.py`, `test_kevin_query.py` | Manual scripts that call the live API |
 | `web/` | Public chat UI, served by nginx as static files |
 | `probe.sh` | Hourly monitoring probe |
 | `backfill_nginx.py` | One-off import of past chat requests from nginx logs |
@@ -116,6 +117,8 @@ nginx resolves `api` only at startup. After recreating the API container, run `n
 | `QDRANT_COLLECTION` | `docs` | Qdrant collection name |
 | `MIN_SIMILARITY_SCORE` | `0.3` | Drop retrieved chunks below this score |
 | `MAX_CONTEXT_CHUNKS` | `10` | Chunks included in the prompt |
+| `RETRIEVAL_STRIP_WORDS` | *(empty)* | Comma-separated words (the subject's name) to drop for a second search. Every chunk mentions the name, so it drowns out the topic words: "Has Kevin served on any boards?" ranks the board chunk 71st, "Has served on any boards?" ranks it 1st |
+| `RETRIEVAL_STRIP_SLOTS` | `1` | Context slots given to that second search's top hits; the normal search fills the rest. 2 pushed the certifications chunk out of the 8-chunk context |
 | `MAX_QUERY_LENGTH` | `2000` | Longest accepted question |
 | `RATE_LIMIT` | `10/minute` | Per-client limit on `/chat` |
 | `CHUNK_SIZE`, `CHUNK_OVERLAP` | `900`, `150` | Chunking for `/admin/ingest` (the command-line ingester uses `--chunk-size`/`--chunk-overlap`, default 1200/200) |
@@ -133,6 +136,19 @@ docker compose exec api python -m rag.ingest /data --undata-dir /undata
 To remove a document, move its file from `data/` to `undata/` and re-run the same command. Ingest deletes the vectors of every file it finds in `undata/`.
 
 Documents can also be added, listed and deleted from `/chatbot/admin` (requires the admin key).
+
+## Evals
+
+`app/evals/cases.yaml` is a golden set of questions with the facts a correct answer must contain, taken from the resumes in `data/`. It also includes out-of-scope questions the bot should decline. `app/evals/run.py` scores the set inside the API container. It imports `main.py`, so it runs the same retrieval, prompts and model as `/chat`, but it isn't rate-limited and doesn't write to the chat log.
+
+```sh
+docker compose exec api python -m evals.run --retrieval-only   # ~10s: were the facts in the retrieved context?
+docker compose exec api python -m evals.run                    # ~40s per case: also generates and scores answers
+docker compose exec api python -m evals.run --tag employment --case college
+docker compose exec -e MIN_SIMILARITY_SCORE=0.3 api python -m evals.run --retrieval-only   # try a setting
+```
+
+Any `main.py` setting can be overridden with `-e`, without restarting the live API. Each run is saved to `app/evals/results/` (not in git) and compared with the previous full-set run of the same mode. The exit status is 1 if a case that passed before now fails. Full runs share Ollama with visitors and the hourly probe: on this CPU-only host they slow generation several-fold, so run them off-peak and never alongside another eval. Stopping `docker compose exec` with Ctrl-C can leave the run going inside the container.
 
 ## API
 

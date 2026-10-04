@@ -554,12 +554,14 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
     if not contexts:
         logger.warning(f"No chunks found above similarity threshold {MIN_SIMILARITY_SCORE}")
         context_text = "No relevant context found in the knowledge base."
+        # The query is left out on purpose: the reply doesn't depend on it, and including it
+        # let "ignore all previous instructions and ..." override the decline (eval oos-injection)
         prompt = (
-            "You are a helpful assistant. The user asked a question, but no relevant information "
-            "was found in the knowledge base.\n\n"
-            f"Question: {query}\n\n"
-            "Please respond politely that you don't have sufficient information to answer this question "
-            "based on the available knowledge base. Do not make up information."
+            "You are the assistant on Kevin Draggoo's website, answering questions about his career "
+            "from a knowledge base. A visitor's message matched nothing in the knowledge base.\n\n"
+            "Reply in one or two sentences: say politely that you don't have information about that, "
+            "and that you can answer questions about Kevin's work experience, skills and background. "
+            "Do not write anything else."
         )
         return prompt, context_text, []
     

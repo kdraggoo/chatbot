@@ -78,6 +78,76 @@ def is_near_duplicate(words: set, chosen: List[set]) -> bool:
         len(words & c) / len(words | c) >= DEDUP_SIMILARITY for c in chosen)
 
 
+# Context chunks are numbered [1], [2], ... and the model cites them ("According to
+# section [1], ..."), but visitors never see the sources, so the markers and the
+# phrases that point at them are removed from answers.
+_CITE = r"\[\d+(?:\s*[,\-–]\s*\d+)*\]"
+_CITES = rf"{_CITE}(?:(?:\s*,)?\s*(?:and|&)?\s*{_CITE})*"  # "[1], [2], and [4]"
+_SECTIONS = r"(?:the\s+)?(?:context\s+)?(?:provided\s+)?(?:in\s+)?(?:(?:sections?|chunks?|sources?)\s*)?"
+_CITATION_RULES = [
+    # "These are mentioned in sections [3], [4] and [6] of the context." (whole sentence)
+    (re.compile(rf"[ \t]*\b(?:These|This|All of these)\b[^.\n]*?\bin\s+{_SECTIONS}{_CITES}[^.\n]*\.", re.I), ""),
+    # "(as seen in [1] and [2])"
+    (re.compile(rf"[ \t]*\(\s*(?:as\s+)?(?:(?:seen|mentioned|stated|noted|listed|described)\s+)?(?:in\s+)?{_SECTIONS}{_CITES}\s*\)", re.I), ""),
+    # "Additionally, section [7] mentions that Kevin", "However, [4] mentions that"
+    (re.compile(rf"(?:(?<=^)|(?<=[.!?,:]\s)|(?<=\n)){_SECTIONS}{_CITES}\s+(?:also\s+)?(?:mentions|states|notes|says|shows|lists|indicates)\s+(?:that\s+)?", re.I | re.M), "\0"),
+    # "whereas section [8] mentions similar results", "Note that section [4] also mentions"
+    (re.compile(rf"\b{_SECTIONS}{_CITES}\s+((?:also\s+)?(?:mentions|states|notes|says|shows|lists|indicates))\b", re.I), r"his resume \1"),
+    # "According to section [1], ", "in sections [1] and [2] of the context", "as mentioned in section [2]"
+    (re.compile(rf"[ \t]*\b(?:as\s+(?:stated|mentioned|seen|noted|described|listed)\s+in|according\s+to|based\s+on|in|from)\s+"
+                rf"{_SECTIONS}{_CITES}(?:\s+of\s+(?:the|his)\s+[\w ]+?(?=[,.;:\n]))?\s*,?[ \t]*", re.I), " \0"),
+    (re.compile(rf"[ \t]*{_CITES}"), ""),  # any marker left
+]
+# A space before punctuation or at a line edge, left where a phrase was removed
+_CITATION_TIDY = [(re.compile(r"[ \t]+([.,;:!?])"), r"\1"), (re.compile(r"^[ \t]+|[ \t]+$", re.M), ""),
+                  (re.compile(r"([,;:])[.]"), "."), (re.compile(r"[ \t]{2,}"), " ")]
+# A sentence that now starts where a phrase was removed (marked \0): "- In section [2], he was"
+_SENTENCE_START = re.compile(r"(^[ \t]*(?:[-*]|\d+\.)?[ \t]*|[.!?][ \t]+)\0[ \t]*([a-z])", re.M)
+
+
+def strip_citations(text: str) -> str:
+    if "[" not in text:
+        return text
+    out = text
+    for rx, repl in _CITATION_RULES:
+        out = rx.sub(repl, out)
+    out = _SENTENCE_START.sub(lambda m: m.group(1) + m.group(2).upper(), out).replace("\0", "")
+    for rx, repl in _CITATION_TIDY:
+        out = rx.sub(repl, out)
+    return out
+
+
+# The phrase before a marker ("According to section") streams first, so streamed text is
+# held back until a sentence or line ends and cleaned a sentence at a time.
+_STREAM_BREAK = re.compile(r"(?:[.!?:](?=\s)|\n)(?!.*(?:[.!?:](?=\s)|\n))", re.S)
+
+
+def _strip_piece(piece: str) -> str:
+    """strip_citations for part of a text, keeping the spaces it starts and ends with."""
+    core = piece.strip(" \t\n")
+    if "[" not in core:
+        return piece
+    i = piece.index(core[0])
+    return piece[:i] + strip_citations(core) + piece[i + len(core):]
+
+
+async def without_citations(tokens):
+    """Yield streamed tokens with citations removed, a sentence or line at a time."""
+    pending = ""
+    async for token in tokens:
+        if token.startswith("[ERROR"):
+            yield (_strip_piece(pending) if pending else "") + token
+            pending = ""
+            continue
+        pending += token
+        m = _STREAM_BREAK.search(pending)
+        if m:
+            out, pending = pending[:m.end()], pending[m.end():]
+            yield _strip_piece(out)
+    if pending:
+        yield _strip_piece(pending)
+
+
 def drop_near_duplicates(points: list) -> list:
     """Points in order, without those that nearly repeat an earlier one."""
     kept, chosen = [], []
@@ -614,8 +684,12 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
     return prompt, context_text, sources
 
 
-async def _stream_ollama_response(prompt: str, timeout: float = 180.0):
-    """Stream response from Ollama, yielding tokens as they arrive."""
+def _stream_ollama_response(prompt: str, timeout: float = 180.0):
+    """Stream response from Ollama, yielding tokens (without citation markers) as they arrive."""
+    return without_citations(_stream_ollama_tokens(prompt, timeout))
+
+
+async def _stream_ollama_tokens(prompt: str, timeout: float):
     try:
         logger.debug(f"Streaming to Ollama with prompt length: {len(prompt)}")
         # Use a longer timeout with separate connect timeout
@@ -741,7 +815,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
         )
         response.raise_for_status()
         data = response.json()
-        answer = data.get("response", "").strip()
+        answer = strip_citations(data.get("response", "")).strip()
         logger.info(f"Generated answer of length {len(answer)} characters")
         status = "ok"
     except httpx.TimeoutException:

@@ -283,7 +283,7 @@ async def main_async(args) -> int:
 
     config = {k: getattr(main, k) for k in
               ("GEN_MODEL", "EMBED_MODEL", "QDRANT_COLLECTION", "MIN_SIMILARITY_SCORE", "MAX_CONTEXT_CHUNKS", "RETRIEVAL_STRIP_WORDS", "RETRIEVAL_STRIP_SLOTS",
-               "DEDUP_SIMILARITY", "GEN_OPTIONS")}
+               "DEDUP_SIMILARITY", "MMR_LAMBDA", "GEN_OPTIONS")}
     mode = "retrieval" if args.retrieval_only else "full"
     print(f"{len(cases)} cases, mode {mode}, " + ", ".join(f"{k}={v}" for k, v in config.items()) + "\n")
 

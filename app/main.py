@@ -20,6 +20,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, FilterSelector, Filter, FieldCondition, MatchValue
 from typing import List, Optional
 import httpx
+import numpy as np  # installed with qdrant-client
 from rag.ingest import chunk_text
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from slowapi import Limiter
@@ -88,6 +89,31 @@ def drop_near_duplicates(points: list) -> list:
     return kept
 
 
+# Word overlap misses versions that describe the same job in different words (the
+# Infor role appears in ~10 resumes, cosine 0.8-0.95 apart but Jaccard under 0.35).
+# Below 1, search results are reordered by maximal marginal relevance: each pick
+# trades its score (weight MMR_LAMBDA) against its cosine to the closest earlier
+# pick. 1 keeps plain score order.
+MMR_LAMBDA = float(os.getenv("MMR_LAMBDA", "1"))
+
+
+def diversify(points: list) -> list:
+    """Points reordered by maximal marginal relevance (unchanged if MMR_LAMBDA >= 1)."""
+    if MMR_LAMBDA >= 1 or len(points) < 3 or any(p.vector is None for p in points):
+        return points
+    vecs = [np.asarray(p.vector, dtype=float) for p in points]
+    vecs = [v / (np.linalg.norm(v) or 1) for v in vecs]
+    remaining, order = list(range(len(points))), []
+    nearest = [0.0] * len(points)  # cosine to the closest chosen point
+    while remaining:
+        best = max(remaining, key=lambda i: MMR_LAMBDA * points[i].score - (1 - MMR_LAMBDA) * nearest[i])
+        remaining.remove(best)
+        order.append(best)
+        for i in remaining:
+            nearest[i] = max(nearest[i], float(vecs[i] @ vecs[best]))
+    return [points[i] for i in order]
+
+
 def retrieval_query(query: str) -> str:
     """The query as embedded for search: RETRIEVAL_STRIP_WORDS removed, unless nothing would be left."""
     if not _strip_re:
@@ -115,15 +141,16 @@ async def search_chunks(query: str, limit: int) -> list:
         try:
             rankings.append(qdrant_client.search(
                 collection_name=QDRANT_COLLECTION, query_vector=vec, limit=limit, with_payload=True,
+                with_vectors=MMR_LAMBDA < 1,
             ))
         except Exception as e:
             logger.error(f"Qdrant search error: {e}")
             raise HTTPException(status_code=502, detail=f"Qdrant error: {e}")
     if len(rankings) == 1:
-        return rankings[0]
+        return diversify(rankings[0])
 
     full, stripped = rankings
-    reserved = drop_near_duplicates([p for p in stripped if p.score >= MIN_SIMILARITY_SCORE])[:RETRIEVAL_STRIP_SLOTS]
+    reserved = drop_near_duplicates(diversify([p for p in stripped if p.score >= MIN_SIMILARITY_SCORE]))[:RETRIEVAL_STRIP_SLOTS]
     seen, merged = set(), []
     for point in reserved + full:
         if point.id not in seen:

@@ -70,8 +70,9 @@
   tags: [achievements, attribution]
   facts: [[48%, 48 percent], [35%, 35 percent], [Gartner, Forrester, leader quadrant]]
   min_facts: 2
-  # Webgility results that chunks spanning both jobs used to pass off as Infor's
-  forbid: [60%, first-call, four major products, 4 major products]
+  # Webgility results that chunks spanning both jobs used to pass off as Infor's,
+  # and Rocket/consulting results that MMR at 0.7 pulled in and the live API credited to Infor
+  forbid: [60%, first-call, four major products, 4 major products, "1,272", voter, time card]
 
 - id: clm-product
   query: What did Kevin do at The CLM Group?

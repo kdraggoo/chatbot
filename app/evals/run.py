@@ -21,6 +21,10 @@ Usage (from /srv/chatbot):
 Override any main.py setting with -e (MIN_SIMILARITY_SCORE, MAX_CONTEXT_CHUNKS,
 GEN_MODEL, ...) to try it without touching the live API.
 
+Generation is deterministic here (GEN_TEMPERATURE=0, GEN_SEED=42 unless set with
+-e), so a change between runs comes from the change being tested, not sampling.
+At the model's default temperature the same config varied by 1-2 answers a run.
+
 Each run is saved to evals/results/ and compared with the previous run of the
 same mode. Exit status is 1 if a case that passed in that run now fails.
 Generation shares Ollama with live visitors, so cases run one at a time.
@@ -266,6 +270,8 @@ def rescore(path: Path, cases_path: Path) -> int:
 
 async def main_async(args) -> int:
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    os.environ.setdefault("GEN_TEMPERATURE", "0")
+    os.environ.setdefault("GEN_SEED", "42")
     import main  # reads the env at import, so -e overrides apply
 
     logging.getLogger("main").setLevel(logging.ERROR)  # scores are printed below
@@ -276,7 +282,8 @@ async def main_async(args) -> int:
         sys.exit("No cases match the filters")
 
     config = {k: getattr(main, k) for k in
-              ("GEN_MODEL", "EMBED_MODEL", "QDRANT_COLLECTION", "MIN_SIMILARITY_SCORE", "MAX_CONTEXT_CHUNKS", "RETRIEVAL_STRIP_WORDS", "RETRIEVAL_STRIP_SLOTS")}
+              ("GEN_MODEL", "EMBED_MODEL", "QDRANT_COLLECTION", "MIN_SIMILARITY_SCORE", "MAX_CONTEXT_CHUNKS", "RETRIEVAL_STRIP_WORDS", "RETRIEVAL_STRIP_SLOTS",
+               "DEDUP_SIMILARITY", "GEN_OPTIONS")}
     mode = "retrieval" if args.retrieval_only else "full"
     print(f"{len(cases)} cases, mode {mode}, " + ", ".join(f"{k}={v}" for k, v in config.items()) + "\n")
 

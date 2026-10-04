@@ -37,6 +37,10 @@ logger = logging.getLogger(__name__)
 QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 GEN_MODEL = os.getenv("GEN_MODEL", "llama3.1:8b")
+# Sampling for generation; unset leaves the model's defaults (llama3.2: temperature 0.8).
+# GEN_TEMPERATURE=0 answers the same prompt the same way every time.
+GEN_OPTIONS = {k: cast(os.environ[e]) for k, e, cast in
+               (("temperature", "GEN_TEMPERATURE", float), ("seed", "GEN_SEED", int)) if os.getenv(e)}
 EMBED_MODEL = os.getenv("EMBED_MODEL", "bge-m3")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "docs")
 MAX_QUERY_LENGTH = int(os.getenv("MAX_QUERY_LENGTH", "2000"))
@@ -591,7 +595,7 @@ async def _stream_ollama_response(prompt: str, timeout: float = 180.0):
         async with http_client.stream(
             'POST',
             f"{OLLAMA_URL.rstrip('/')}/api/generate",
-            json={"model": GEN_MODEL, "prompt": prompt, "stream": True},
+            json={"model": GEN_MODEL, "prompt": prompt, "stream": True, "options": GEN_OPTIONS},
             timeout=stream_timeout,
         ) as response:
             response.raise_for_status()
@@ -703,7 +707,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
         generate_timeout = httpx.Timeout(timeout_seconds, connect=30.0)
         response = await http_client.post(
             f"{OLLAMA_URL.rstrip('/')}/api/generate",
-            json={"model": GEN_MODEL, "prompt": prompt, "stream": False},
+            json={"model": GEN_MODEL, "prompt": prompt, "stream": False, "options": GEN_OPTIONS},
             timeout=generate_timeout,
         )
         response.raise_for_status()

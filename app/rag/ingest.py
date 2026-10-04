@@ -24,6 +24,13 @@ Environment variables (with sensible defaults):
   start a section; sections are chunked separately and each chunk is prefixed
   with "[<title> | <section>]". "name=label" gives a section its own label, e.g.
   "Finley Farms=Volunteer board leadership: Finley Farms HOA" (not an employer)
+- CHUNK_SIZE / CHUNK_OVERLAP (default: 900 / 150): CLI defaults, matching main.py
+- CORRECTIONS_FILE (default: /data/corrections.yaml): text fixes applied after
+  extraction, for source documents that say something untrue. A list of
+  {file, find, replace, why}; a "find" missing from its file is reported.
+
+Re-ingesting a file replaces its chunks: the old ones are deleted once the new
+ones are embedded, so a document that now chunks shorter leaves nothing behind.
 
 Usage:
   python -m rag.ingest /data --collection docs
@@ -542,6 +549,7 @@ def delete_document(client: QdrantClient, collection: str, doc_id: str) -> int:
         client.delete(
             collection_name=collection,
             points_selector=FilterSelector(filter=filter_condition),
+            wait=True,
         )
         
         # Try to verify deletion by checking if any chunks remain
@@ -630,6 +638,28 @@ def guess_title(path: Path, text: str) -> str:
     return path.stem if len(path.stem) >= 3 else (head[:80] or path.name)
 
 
+CORRECTIONS_FILE = Path(os.getenv("CORRECTIONS_FILE", "/data/corrections.yaml"))
+
+
+def load_corrections(path: Path = CORRECTIONS_FILE) -> List[dict]:
+    if not path.is_file():
+        return []
+    import yaml
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or []
+
+
+def apply_corrections(path: Path, text: str, corrections: List[dict]) -> str:
+    for c in corrections:
+        if c["file"] != path.name:
+            continue
+        if c["find"] in text:
+            text = text.replace(c["find"], c["replace"])
+            print(f"Corrected {path.name}: {c['find']!r} -> {c['replace']!r}")
+        else:
+            print(f"WARNING: correction not applied to {path.name}, text not found: {c['find']!r}", file=sys.stderr)
+    return text
+
+
 def iter_files(root: Path) -> Iterable[Path]:
     for p in root.rglob("*"):
         if p.is_file() and p.suffix.lower() in SUPPORTED_EXTS:
@@ -660,10 +690,11 @@ def run_ingest(
     if not files:
         print(f"No files found under {data_dir}")
         return
+    corrections = load_corrections()
 
     for f in files:
         try:
-            text = strip_references(extract_text(f))
+            text = strip_references(apply_corrections(f, extract_text(f), corrections))
             ch_texts = chunk_sections(text, guess_title(f, text), SECTION_NAMES, chunk_size, chunk_overlap)
             if not ch_texts:
                 print(f"Skip empty after chunking: {f}")
@@ -682,6 +713,10 @@ def run_ingest(
                 )
                 for i, t in enumerate(ch_texts)
             ]
+            # Replace, not append: drop the document's old chunks (embedding succeeded, so it
+            # won't be left empty), or a document that now chunks shorter keeps stale ones
+            if delete_document(client, collection, doc_id) < 0:
+                raise RuntimeError("could not delete old chunks")
             upsert_chunks(client, collection, doc_id, chunks, vectors)
             print(f"Ingested {f} -> {len(chunks)} chunks")
         except Exception as e:
@@ -695,8 +730,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--qdrant-url", default=os.getenv("QDRANT_URL", "http://qdrant:6333"))
     parser.add_argument("--ollama-url", default=os.getenv("OLLAMA_URL", "http://ollama:11434"))
     parser.add_argument("--embed-model", default=os.getenv("EMBED_MODEL", "bge-m3"))
-    parser.add_argument("--chunk-size", type=int, default=1200)  # Increased for better context
-    parser.add_argument("--chunk-overlap", type=int, default=200)  # Increased overlap for resumes
+    parser.add_argument("--chunk-size", type=int, default=int(os.getenv("CHUNK_SIZE", "900")))
+    parser.add_argument("--chunk-overlap", type=int, default=int(os.getenv("CHUNK_OVERLAP", "150")))
     parser.add_argument("--undata-dir", default="/undata", help="Directory containing files to remove from collection (default: /undata)")
     args = parser.parse_args(argv)
 

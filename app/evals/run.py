@@ -49,7 +49,7 @@ REFUSAL_MARKERS = [
     "no information", "not mention", "no mention", "not provided", "not specified",
     "not available", "not include", "not contain", "isn't mentioned", "is not mentioned",
     "not found", "no record", "not listed", "unable to", "cannot", "can't",
-    "couldn't", "could not", "not able to",
+    "couldn't", "could not", "not able to", "does not provide", "doesn't provide",
     "insufficient", "not enough information", "no relevant",
 ]
 

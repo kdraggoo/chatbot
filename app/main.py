@@ -54,6 +54,34 @@ _strip_re = re.compile(
     r"\b(?:" + "|".join(map(re.escape, RETRIEVAL_STRIP_WORDS)) + r")(?:['’]s)?\b", re.IGNORECASE
 ) if RETRIEVAL_STRIP_WORDS else None
 RETRIEVAL_STRIP_SLOTS = int(os.getenv("RETRIEVAL_STRIP_SLOTS", "1"))  # context slots kept for that search
+# The knowledge base holds many versions of the same resume, so the top hits are often
+# one section repeated (e.g. the same volunteer list from five 2009-2011 resumes) and
+# crowd out everything else. A chunk whose words overlap an already chosen chunk's by
+# at least this much (Jaccard, header line ignored) is skipped. 1 or more disables it.
+DEDUP_SIMILARITY = float(os.getenv("DEDUP_SIMILARITY", "0.7"))
+
+
+def _chunk_words(text: str) -> set:
+    """A chunk's words for near-duplicate checks, without its "[title | section]" line."""
+    if text.startswith("["):
+        text = text.split("\n", 1)[-1]
+    return set(re.findall(r"\w+", text.lower()))
+
+
+def is_near_duplicate(words: set, chosen: List[set]) -> bool:
+    return DEDUP_SIMILARITY < 1 and bool(words) and any(
+        len(words & c) / len(words | c) >= DEDUP_SIMILARITY for c in chosen)
+
+
+def drop_near_duplicates(points: list) -> list:
+    """Points in order, without those that nearly repeat an earlier one."""
+    kept, chosen = [], []
+    for point in points:
+        words = _chunk_words((point.payload or {}).get("text") or "")
+        if not is_near_duplicate(words, chosen):
+            chosen.append(words)
+            kept.append(point)
+    return kept
 
 
 def retrieval_query(query: str) -> str:
@@ -91,7 +119,7 @@ async def search_chunks(query: str, limit: int) -> list:
         return rankings[0]
 
     full, stripped = rankings
-    reserved = [p for p in stripped if p.score >= MIN_SIMILARITY_SCORE][:RETRIEVAL_STRIP_SLOTS]
+    reserved = drop_near_duplicates([p for p in stripped if p.score >= MIN_SIMILARITY_SCORE])[:RETRIEVAL_STRIP_SLOTS]
     seen, merged = set(), []
     for point in reserved + full:
         if point.id not in seen:
@@ -441,13 +469,15 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
         logger.info(f"Employment list query detected: Retrieving up to {retrieve_limit} chunks (will use ~{int(MAX_CONTEXT_CHUNKS * 1.2)} in context)")
     else:
         is_list_query_local = any(word in query.lower() for word in ["list", "all", "every", "complete"])
-        retrieve_limit = MAX_CONTEXT_CHUNKS * 4 if is_list_query_local else MAX_CONTEXT_CHUNKS * 2
+        retrieve_limit = MAX_CONTEXT_CHUNKS * 4 if is_list_query_local else MAX_CONTEXT_CHUNKS * 3
     search_res = await search_chunks(query, retrieve_limit)
     logger.info(f"Retrieved {len(search_res)} chunks from Qdrant (requested: {retrieve_limit})")
 
     # Filter by score and collect contexts with metadata
     contexts = []
     sources = []
+    chosen_words: List[set] = []
+    skipped_dupes = 0
     for idx, point in enumerate(search_res):
         # Get similarity score (Qdrant uses cosine distance, so higher is better)
         score = getattr(point, 'score', 1.0)
@@ -465,6 +495,11 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
         if is_employment_list and idx == 0:
             logger.info(f"Employment query: Will use up to {max_chunks_for_query} chunks (currently have {len(contexts)})")
         if text and len(contexts) < max_chunks_for_query:
+            words = _chunk_words(text)
+            if is_near_duplicate(words, chosen_words):
+                skipped_dupes += 1
+                continue
+            chosen_words.append(words)
             # Include chunk with numbering for citation
             chunk_num = len(contexts) + 1
             contexts.append(f"[{chunk_num}] {text}")
@@ -499,7 +534,7 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
     
     # Calculate average relevance score
     avg_score = sum(s["score"] for s in sources) / len(sources) if sources else 0
-    logger.info(f"Selected {len(contexts)} chunks (max allowed: {max_chunks_for_query}), avg similarity: {avg_score:.3f}")
+    logger.info(f"Selected {len(contexts)} chunks (max allowed: {max_chunks_for_query}), avg similarity: {avg_score:.3f}, near-duplicates skipped: {skipped_dupes}")
     if is_employment_list:
         logger.info(f"Employment list query: Using {len(contexts)}/{max_chunks_for_query} chunks for comprehensive extraction")
 

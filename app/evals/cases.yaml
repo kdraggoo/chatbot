@@ -67,9 +67,11 @@
 
 - id: infor-results
   query: What results did Kevin achieve at Infor?
-  tags: [achievements]
+  tags: [achievements, attribution]
   facts: [[48%, 48 percent], [35%, 35 percent], [Gartner, Forrester, leader quadrant]]
   min_facts: 2
+  # Webgility results that chunks spanning both jobs used to pass off as Infor's
+  forbid: [60%, first-call, four major products, 4 major products]
 
 - id: clm-product
   query: What did Kevin do at The CLM Group?
@@ -89,10 +91,13 @@
   tags: [experience, probe]
   facts: [["15+", "15 years", "fifteen"]]
 
+# Direct reports were at Webgility (2, plus mentoring the India team). The larger
+# Infor teams were cross-functional; one resume's "150+ direct reports" overstates it.
 - id: management
   query: Does Kevin have direct management experience?
   tags: [leadership, probe]
-  facts: [["150", "30-person", "30 person", "mentor", "direct reports", "hired"]]
+  facts: [["2 direct reports", "two direct reports", "2 direct", "two direct"], Webgility]
+  forbid: ["150+ direct reports", "150 direct reports"]
 
 - id: ai-skill
   query: What is Kevin's skill level with AI?
@@ -102,8 +107,59 @@
 
 - id: board
   query: Has Kevin served on any boards?
-  tags: [leadership]
+  tags: [leadership, volunteer]
   facts: [[HOA, Finley Farms, homeowners]]
+
+# --- Volunteer and community work --------------------------------------------
+# Spread thinly across resumes from different years, like the board role: Habitat
+# for Humanity, Rotary and Boy Scouts (2009-2011 resumes), PDMA Arizona president
+# (2013-14), school PTO VP and co-president (2014-16), HOA board (2019-22), and
+# "political campaigns, mentoring, non-profit board roles" (ATS resume). Facts are
+# words the question doesn't contain, so echoing the question can't pass.
+
+- id: volunteer
+  query: Has Kevin done any volunteer work?
+  tags: [volunteer]
+  facts: [[Habitat], [Rotary], [Boy Scouts, Scouts], [PTO], [PDMA], [HOA, Finley Farms, homeowners], [political campaign]]
+  min_facts: 2
+
+- id: nonprofit
+  query: Any nonprofit involvement?
+  tags: [volunteer]
+  facts: [[Habitat, Rotary, Boy Scouts, PDMA, PTO], [bylaws, by-laws, codes of conduct, governance]]
+  min_facts: 1
+
+- id: community
+  query: Is Kevin involved in his community?
+  tags: [volunteer]
+  facts: [[HOA, Finley Farms, homeowners], [PTO, Imagine West Gilbert], [Rotary, Habitat, Boy Scouts]]
+  min_facts: 1
+
+- id: outside-leadership
+  query: Has Kevin held any leadership roles outside of work?
+  tags: [volunteer, leadership]
+  facts: [[HOA, Finley Farms, homeowners], [PTO], [PDMA]]
+  min_facts: 1
+
+- id: professional-association
+  query: Has Kevin been involved in any professional associations?
+  tags: [volunteer]
+  facts: [[PDMA, Product Development and Management Association]]
+
+- id: school-volunteer
+  query: Has Kevin volunteered at a school?
+  tags: [volunteer]
+  facts: [[PTO, Imagine West Gilbert]]
+
+- id: hoa-dates
+  query: When was Kevin on the HOA board?
+  tags: [volunteer, dates]
+  facts: ["2019"]
+
+- id: boy-scouts
+  query: What did Kevin do for the Boy Scouts?
+  tags: [volunteer]
+  facts: [[computer, network]]
 
 # --- Education and location -------------------------------------------------
 

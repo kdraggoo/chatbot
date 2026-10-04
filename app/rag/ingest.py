@@ -20,6 +20,10 @@ Environment variables (with sensible defaults):
 - QDRANT_COLLECTION (default: docs)
 - OLLAMA_URL (default: http://ollama:11434)
 - EMBED_MODEL (default: bge-m3)
+- SECTION_NAMES (default: none): comma-separated employer names whose heading lines
+  start a section; sections are chunked separately and each chunk is prefixed
+  with "[<title> | <section>]". "name=label" gives a section its own label, e.g.
+  "Finley Farms=Volunteer board leadership: Finley Farms HOA" (not an employer)
 
 Usage:
   python -m rag.ingest /data --collection docs
@@ -66,6 +70,108 @@ try:
 except Exception:
     fitz = None
 
+
+# ----------------------------
+# Section labels
+# ----------------------------
+# A chunk cut from the middle of a resume may not say which job it describes, e.g.
+# "Achievements: Launched 4 major products..." whose company heading fell in the
+# previous chunk. The model then credits it to whatever company the question names.
+# So documents are split at heading lines (an employer named in SECTION_NAMES, or a
+# generic heading such as EDUCATION or VOLUNTEER Experience), each section is
+# chunked on its own, and each chunk starts with "[<title> | <section>]".
+
+SECTION_NAMES = [n.strip() for n in os.getenv("SECTION_NAMES", "").split(",") if n.strip()]
+_GENERIC_HEADING = re.compile(
+    r"^(professional |work |board |volunteer |additional )?"
+    r"(summary|experience|education|certifications?|volunteer|community service|skills|references|"
+    r"accomplishments|information|board experience|technical skills)\b", re.I)
+_PHONE = re.compile(r"\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}")
+
+
+def heading_label(line: str, names: List[str]) -> Optional[str]:
+    """The section a heading line starts, or None if the line isn't a heading."""
+    s = line.strip()
+    # Plain-text markup: "==Work Experience==", "*The CLM Group ~ ..." (a "* " bullet stays a bullet)
+    s = re.sub(r"^(=+|#+\s*|\*(?=\S))|=+$", "", s).strip()
+    if not s or len(s) > 100 or s[0] in "•*·-" or _PHONE.search(s):
+        return None
+    for name in names:
+        name, _, label = name.partition("=")
+        m = re.search(r"\b" + re.escape(name) + r"\b", s, re.I)
+        # A heading names the employer as a label, not inside a sentence
+        # ("Certification from Best Buy", "across Rocket companies").
+        if m and len(s.split()) <= 14 and not s.endswith(".") and not re.search(
+                r"\b(from|for|at|with|across|in|by)\s+$", s[:m.start()], re.I) \
+                and s[:m.start()].count("(") <= s[:m.start()].count(")"):
+            return label or name
+    letters = [c for c in s if c.isalpha()]
+    if len(s.split()) <= 5 and letters and (
+            _GENERIC_HEADING.match(s) or (len(s) <= 40 and sum(c.isupper() for c in letters) / len(letters) > 0.8)):
+        return s.rstrip(":").title()
+    return None
+
+
+_REFERENCES_HEADING = re.compile(r"^(professional |personal )?references:?$", re.I)
+
+
+def strip_references(text: str, names: Optional[List[str]] = None) -> str:
+    """Drop reference sections: other people's names, titles and phone numbers don't
+    belong in a public chatbot. A section runs from a "References" heading to the next
+    heading or the end of the document. ("References available upon request" stays.)"""
+    names = SECTION_NAMES if names is None else names
+    out, skipping = [], False
+    for line in text.splitlines(keepends=True):
+        bare = re.sub(r"^(=+|#+\s*)|=+$", "", line.strip()).strip()
+        if _REFERENCES_HEADING.match(bare):
+            skipping = True
+            continue
+        if skipping and heading_label(line, names):
+            skipping = False
+        if not skipping:
+            out.append(line)
+    return "".join(out)
+
+
+def split_sections(text: str, names: List[str]) -> List[Tuple[Optional[str], str]]:
+    """Split text at heading lines into (label, section text) pairs, in order.
+
+    Chunking each section on its own keeps one job's bullets out of the next job's
+    chunk: a chunk holding Webgility results plus the "Infor" heading read as Infor
+    results. A heading with almost nothing under it (e.g. "PROFESSIONAL EXPERIENCE"
+    right above the first employer) is folded into the next section.
+    """
+    first_line = next((ln.strip().lower() for ln in text.splitlines() if ln.strip()), "")
+    labels = {n.partition("=")[2] or n.partition("=")[0] for n in names}
+    sections: List[Tuple[Optional[str], List[str]]] = [(None, [])]
+    for line in text.splitlines(keepends=True):
+        label = heading_label(line, names)
+        # The name at the top of a resume (often repeated as a page header) isn't a section
+        if label and not (label.lower() == first_line and label not in labels and not _GENERIC_HEADING.match(label)):
+            sections.append((label, []))
+        sections[-1][1].append(line)
+    out: List[Tuple[Optional[str], str]] = []
+    carry = ""
+    for label, lines in sections:
+        body = carry + "".join(lines)
+        if len("".join(body.split())) < 60 and label is not None:
+            carry = body  # too little to stand alone: prepend to the next section
+            continue
+        carry = ""
+        if body.strip():
+            out.append((label, body))
+    if carry.strip():
+        out.append((None, carry))
+    return out
+
+
+def chunk_sections(text: str, title: str, names: List[str], size: int, overlap: int) -> List[str]:
+    """Chunk each section separately and prefix every chunk with "[title | section]"."""
+    chunks = []
+    for label, body in split_sections(text, names):
+        header = f"[{title} | {label}]" if label else f"[{title}]"
+        chunks += [f"{header}\n{c}" for c in chunk_text(body, size=size, overlap=overlap)]
+    return chunks
 
 # ----------------------------
 # Text extraction
@@ -261,7 +367,9 @@ def chunk_text(text: str, size: int = 900, overlap: int = 150) -> List[str]:
         while len(current_chunk) > size:
             chunk_parts = _split_at_sentences(current_chunk, size)
             if len(chunk_parts) > 1:
-                chunks.append(chunk_parts[0])
+                # Keep every part: appending only the first dropped the middle of any
+                # paragraph longer than two chunks (up to 68% of a PDF with no blank lines)
+                chunks.extend(chunk_parts[:-1])
                 current_chunk = chunk_parts[-1]
             else:
                 # Force split at character boundary if no sentences
@@ -555,8 +663,8 @@ def run_ingest(
 
     for f in files:
         try:
-            text = extract_text(f)
-            ch_texts = chunk_text(text, size=chunk_size, overlap=chunk_overlap)
+            text = strip_references(extract_text(f))
+            ch_texts = chunk_sections(text, guess_title(f, text), SECTION_NAMES, chunk_size, chunk_overlap)
             if not ch_texts:
                 print(f"Skip empty after chunking: {f}")
                 continue

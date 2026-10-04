@@ -11,8 +11,8 @@
 #   refuse    true when the knowledge base can't answer and the bot should say so
 #   forbid    strings that must NOT appear in the answer (hallucination guards)
 #
-# Ground truth comes from the resumes in data/, mainly "Kevin Draggoo (3314-F.3).docx",
-# "DRAGGOO KEVIN (3314-B) ATS v2.pdf" and "Kevin Draggoo - Resume (2019-01).pdf".
+# Ground truth comes from data/, mainly "Kevin - Career.md" (built 2026-10-04 from the
+# original resumes and Kevin's fact-check answers) and "DRAGGOO KEVIN (3314-B) ATS v2.pdf".
 
 # --- Employment history ---------------------------------------------------
 
@@ -42,6 +42,14 @@
   query: What was Kevin's job title at Rocket?
   tags: [employment]
   facts: [Digital Product Manager]
+
+# Rocket Central was the employer, part of the Rocket Mortgage family (Kevin, 2026-10-04).
+# Resumes write "Rocket Central (Rocket Mortgage)", which the model read as a correction.
+- id: rocket-central
+  query: Did Kevin work for Rocket Central?
+  tags: [employment, attribution]
+  facts: [Rocket Central]
+  forbid: [not Rocket Central, did not work for Rocket Central, didn't work for Rocket Central, never worked]
 
 - id: rocket-savings
   query: How did Kevin save money at Rocket Mortgage?
@@ -184,6 +192,40 @@
   query: Where is Kevin located?
   tags: [personal]
   facts: [[Mesa, Gilbert, Arizona, AZ]]
+
+# --- Claims Kevin confirmed false (2026-10-04 fact check) -----------------
+# The AI-written uploads stated these; the forbid lists catch them coming back.
+
+- id: satisfaction-47
+  query: What was the 47% improvement at Rocket?
+  tags: [achievements, fact-check]
+  facts: [47%]
+  # 47% of the workforce had their satisfaction improved: not customers, not a score gain
+  forbid: [customer satisfaction, satisfaction by 47%, satisfaction scores]
+
+- id: infor-48-cause
+  query: What drove the 48% increase in deal size at Infor?
+  tags: [achievements, attribution, fact-check]
+  facts: [integrated solutions]
+  forbid: [NLP, natural language, machine learning]
+
+- id: infor-ai-features
+  query: What AI features did Kevin build at Infor?
+  tags: [ai, fact-check]
+  facts: [NLP]
+  forbid: [propensity, churn, next-best, next best]
+
+- id: infor-customers
+  query: Who were the customers of Kevin's product at Infor?
+  tags: [employment, fact-check]
+  facts: [[Lockheed, Thermo, Snap-On, Dunlop]]
+  forbid: [hundreds of Fortune 500]
+
+- id: remote-years
+  query: How many years has Kevin worked remotely?
+  tags: [experience, fact-check]
+  facts: [Rocket]
+  forbid: ["11+", "11 years", eleven]
 
 # --- Out of scope: the bot should decline, not invent -----------------------
 

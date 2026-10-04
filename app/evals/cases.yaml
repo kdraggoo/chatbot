@@ -206,7 +206,8 @@
 - id: infor-48-cause
   query: What drove the 48% increase in deal size at Infor?
   tags: [achievements, attribution, fact-check]
-  facts: [integrated solutions]
+  # Kevin, 2026-10-04: integrated solutions, not NLP/AI. Any wording naming the integration passes
+  facts: [[integrated solutions, integrated with, integration]]
   forbid: [NLP, natural language, machine learning]
 
 - id: infor-ai-features

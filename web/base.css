@@ -1,0 +1,109 @@
+/* /srv/chatbot/web/base.css: layout shared by every theme; colors and fonts live in themes/<name>.css */
+
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	height: 100vh;
+	height: 100dvh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.avatar {
+	display: none;
+}
+
+.theme-picker {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-shrink: 0;
+}
+
+#chatContainer {
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.message {
+	display: flex;
+	flex-direction: column;
+	max-width: 80%;
+}
+
+.message.user {
+	align-self: flex-end;
+	align-items: flex-end;
+}
+
+.message.bot {
+	align-self: flex-start;
+	align-items: flex-start;
+}
+
+.message-content {
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+
+.typing-dots {
+	display: none;
+}
+
+.input-area {
+	display: flex;
+	gap: 0.5rem;
+}
+
+#q {
+	flex: 1;
+	min-width: 0;
+	outline: none;
+}
+
+#go {
+	cursor: pointer;
+}
+
+#go:disabled {
+	cursor: not-allowed;
+}
+
+.header-main {
+	flex: 1;
+	min-width: 0;
+}
+
+#theme {
+	max-width: 9.5rem;
+}
+
+/* Phones: keep the header to one compact row in every theme */
+@media (max-width: 520px) {
+	.header #subtitle {
+		display: none;
+	}
+
+	.theme-picker label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+	}
+}

@@ -3,6 +3,143 @@
 const chatContainer = document.getElementById('chatContainer');
 const queryInput = document.getElementById('q');
 const submitButton = document.getElementById('go');
+const themeSelect = document.getElementById('theme');
+
+// Theme-specific text; the look itself is CSS under [data-theme="..."] in index.html
+const THEMES = {
+    retro: {
+        title: '// CHATBOT INTERFACE',
+        subtitle: "Ask any question about Kevin's employment history. Press Enter or click SEND to submit.",
+        avatar: '',
+        labels: { user: '> USER', bot: '> SYSTEM' },
+        send: 'SEND',
+        sending: 'SENDING...',
+        typing: 'Processing',
+        placeholder: 'Type your message...',
+        empty: 'No messages yet. Start a conversation...',
+    },
+    ios: {
+        title: "Kevin's Resume Bot",
+        subtitle: "Ask any question about Kevin's employment history.",
+        avatar: 'KD',
+        labels: { user: 'You', bot: "Kevin's Resume Bot" },
+        send: '↑',
+        sending: '↑',
+        typing: 'Typing',
+        placeholder: 'iMessage',
+        empty: "iMessage · Today\nAsk any question about Kevin's employment history.",
+    },
+    android: {
+        title: "Kevin's Resume Bot",
+        subtitle: "Ask any question about Kevin's employment history.",
+        avatar: 'K',
+        labels: { user: 'You', bot: "Kevin's Resume Bot" },
+        send: 'Send',
+        sending: 'Send',
+        typing: 'Typing',
+        placeholder: 'Text message',
+        empty: "Today\nAsk any question about Kevin's employment history.",
+    },
+    contrast: {
+        title: 'Ask About Kevin',
+        subtitle: "Ask any question about Kevin's employment history. Press Enter or select Send.",
+        avatar: '',
+        labels: { user: 'You said:', bot: 'Answer:' },
+        send: 'Send',
+        sending: 'Sending…',
+        typing: 'Working on an answer',
+        placeholder: 'Type your question',
+        empty: 'No messages yet. Type a question below to start.',
+    },
+    ironman: {
+        title: 'J.A.R.V.I.S.',
+        subtitle: "Just A Rather Very Intelligent Resume System. Query Kevin's employment history.",
+        avatar: '',
+        labels: { user: 'Visitor', bot: 'J.A.R.V.I.S.' },
+        send: 'Engage',
+        sending: 'Computing',
+        typing: 'Analyzing',
+        placeholder: 'State your query...',
+        empty: 'All systems online. Awaiting your query.',
+    },
+    american: {
+        title: '★ Ask About Kevin ★',
+        subtitle: "Ask any question about Kevin's employment history.",
+        avatar: '',
+        labels: { user: 'You', bot: "Kevin's Resume Bot" },
+        send: 'Send ★',
+        sending: 'Sending',
+        typing: 'Working on it',
+        placeholder: 'Ask your question...',
+        empty: 'Land of the free, home of the resume. Ask away!',
+    },
+    canadian: {
+        title: 'Ask About Kevin',
+        subtitle: "Ask any question about Kevin's employment history.",
+        avatar: '🍁',
+        labels: { user: 'You', bot: "Kevin's Resume Bot, eh" },
+        send: 'Send',
+        sending: 'Sorry, one sec',
+        typing: 'Just a sec, eh',
+        placeholder: 'Ask away, eh?',
+        empty: "Welcome, friend! Ask any question about Kevin's employment history.",
+    },
+    synthwave: {
+        title: 'ASK KEVIN',
+        subtitle: "Ask any question about Kevin's employment history.",
+        avatar: '',
+        labels: { user: 'Player 1', bot: 'KEVIN.EXE' },
+        send: 'SEND',
+        sending: 'LOADING',
+        typing: 'Loading',
+        placeholder: 'Type your message...',
+        empty: 'INSERT QUESTION TO CONTINUE',
+    },
+};
+
+let currentTheme = THEMES[document.documentElement.dataset.theme] ? document.documentElement.dataset.theme : 'retro';
+
+function theme() {
+    return THEMES[currentTheme];
+}
+
+function applyTheme(name, save = true) {
+    if (!THEMES[name]) {
+        name = 'retro';
+    }
+    currentTheme = name;
+    const t = theme();
+    document.documentElement.dataset.theme = name;
+    themeSelect.value = name;
+    document.getElementById('title').textContent = t.title;
+    document.getElementById('subtitle').textContent = t.subtitle;
+    document.getElementById('avatar').textContent = t.avatar;
+    queryInput.placeholder = t.placeholder;
+    submitButton.textContent = submitButton.disabled ? t.sending : t.send;
+    submitButton.setAttribute('aria-label', 'Send');
+    chatContainer.querySelectorAll('.message').forEach(msg => {
+        const label = msg.querySelector('.message-label');
+        if (label) {
+            label.textContent = t.labels[msg.classList.contains('user') ? 'user' : 'bot'];
+        }
+    });
+    chatContainer.querySelectorAll('.typing-text').forEach(el => {
+        el.textContent = t.typing;
+    });
+    const emptyState = chatContainer.querySelector('.empty-state');
+    if (emptyState) {
+        emptyState.textContent = t.empty;
+    }
+    if (save) {
+        try {
+            localStorage.setItem('chatbot-theme', name);
+        } catch (e) {
+            // Storage unavailable (private mode etc.); the theme still applies for this visit
+        }
+    }
+}
+
+themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
 
 let typingIndicatorInterval = null;
 
@@ -12,16 +149,27 @@ function addMessage(content, sender, isTyping = false, isError = false) {
     
     const label = document.createElement('div');
     label.className = 'message-label';
-    label.textContent = sender === 'user' ? '> USER' : '> SYSTEM';
+    label.textContent = theme().labels[sender === 'user' ? 'user' : 'bot'];
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     if (isTyping) {
+        const typingText = document.createElement('span');
+        typingText.className = 'typing-text';
+        typingText.textContent = content;
         const typingSpan = document.createElement('span');
         typingSpan.className = 'typing-indicator';
         typingSpan.textContent = '.';
-        contentDiv.textContent = content;
+        // Dots bubble used by the iOS theme; CSS shows one style or the other
+        const typingDots = document.createElement('span');
+        typingDots.className = 'typing-dots';
+        typingDots.setAttribute('aria-label', content);
+        for (let i = 0; i < 3; i++) {
+            typingDots.appendChild(document.createElement('span'));
+        }
+        contentDiv.appendChild(typingText);
         contentDiv.appendChild(typingSpan);
+        contentDiv.appendChild(typingDots);
         
         // Animate typing indicator
         let dotCount = 0;
@@ -66,7 +214,7 @@ function showEmptyState() {
     if (chatContainer.children.length === 0) {
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'empty-state';
-        emptyDiv.textContent = 'No messages yet. Start a conversation...';
+        emptyDiv.textContent = theme().empty;
         chatContainer.appendChild(emptyDiv);
     }
 }
@@ -96,10 +244,10 @@ document.getElementById('go').onclick = async () => {
     
     // Disable button
     submitButton.disabled = true;
-    submitButton.textContent = 'SENDING...';
+    submitButton.textContent = theme().sending;
     
     // Add typing indicator
-    const typingContentDiv = addMessage('Processing', 'bot', true);
+    const typingContentDiv = addMessage(theme().typing, 'bot', true);
     
     try {
         // Use streaming by default
@@ -142,7 +290,7 @@ document.getElementById('go').onclick = async () => {
         addMessage(`Error: ${error.message || 'Failed to get response. Please try again.'}`, 'bot', false, true);
     } finally {
         submitButton.disabled = false;
-        submitButton.textContent = 'SEND';
+        submitButton.textContent = theme().send;
         queryInput.focus();
     }
 }
@@ -190,7 +338,7 @@ async function handleStreamingResponse(response) {
                                 
                                 const label = document.createElement('div');
                                 label.className = 'message-label';
-                                label.textContent = '> SYSTEM';
+                                label.textContent = theme().labels.bot;
                                 
                                 contentDiv = document.createElement('div');
                                 contentDiv.className = 'message-content';
@@ -250,3 +398,4 @@ queryInput.addEventListener('keypress', (e) => {
 
 // Show empty state on load
 showEmptyState();
+applyTheme(currentTheme, false);

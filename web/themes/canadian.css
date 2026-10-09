@@ -1,0 +1,193 @@
+/* /srv/chatbot/web/themes/canadian.css: red and white, maple leaf flag, friendly */
+
+[data-theme="canadian"] {
+	--ca-red: #d80621;
+	--ca-red-dark: #a8051a;
+	--ca-white: #ffffff;
+	--ca-snow: #faf7f5;
+	--ca-ink: #2a1a1a;
+}
+
+[data-theme="canadian"] body {
+	font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+	background: var(--ca-snow);
+	color: var(--ca-ink);
+}
+
+[data-theme="canadian"] .header {
+	align-items: center;
+	padding: 0.9rem 1rem;
+	background: var(--ca-white);
+	border-bottom: 6px solid var(--ca-red);
+}
+
+[data-theme="canadian"] .header-main {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: 0.9rem;
+	align-items: center;
+}
+
+/* Mini flag: red pale, white square with the leaf, red pale */
+[data-theme="canadian"] .avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	grid-row: span 2;
+	width: 64px;
+	height: 32px;
+	font-size: 1.15rem;
+	line-height: 1;
+	background: linear-gradient(90deg, var(--ca-red) 0 25%, var(--ca-white) 25% 75%, var(--ca-red) 75%);
+	border: 1px solid #e3d6d6;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="canadian"] .header h1 {
+	font-size: 1.4rem;
+	font-weight: 700;
+	color: var(--ca-red);
+}
+
+[data-theme="canadian"] .header p {
+	font-size: 0.85rem;
+	color: #6b5555;
+}
+
+[data-theme="canadian"] .theme-picker label {
+	font-size: 0.8rem;
+	color: #6b5555;
+}
+
+[data-theme="canadian"] #theme {
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 0.3rem 0.5rem;
+	color: var(--ca-red);
+	background: var(--ca-white);
+	border: 2px solid var(--ca-red);
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+/* A big faint maple leaf behind the conversation */
+[data-theme="canadian"] #chatContainer {
+	padding: 1.25rem 1rem;
+	gap: 1rem;
+	background:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-2015 -2000 4030 4030'%3E%3Cpath fill='%23d80621' fill-opacity='0.05' d='m-90 2030 45-863a95 95 0 0 0-111-98l-859 151 116-320a65 65 0 0 0-20-73l-941-762 212-99a65 65 0 0 0 34-79l-186-572 542 115a65 65 0 0 0 73-38l105-247 423 454a65 65 0 0 0 111-57l-204-1052 327 189a65 65 0 0 0 91-27l332-652 332 652a65 65 0 0 0 91 27l327-189-204 1052a65 65 0 0 0 111 57l423-454 105 247a65 65 0 0 0 73 38l542-115-186 572a65 65 0 0 0 34 79l212 99-941 762a65 65 0 0 0-20 73l116 320-859-151a95 95 0 0 0-111 98l45 863z'/%3E%3C/svg%3E") center / min(70%, 420px) no-repeat,
+		var(--ca-snow);
+	background-attachment: local, scroll;
+}
+
+[data-theme="canadian"] .message {
+	animation: caIn 0.3s ease-out;
+}
+
+@keyframes caIn {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+[data-theme="canadian"] .message-label {
+	margin-bottom: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #8a6f6f;
+}
+
+[data-theme="canadian"] .message.bot .message-label::before {
+	content: '\1F341  ';
+}
+
+[data-theme="canadian"] .message-content {
+	padding: 0.7rem 1rem;
+	font-size: 1rem;
+	line-height: 1.5;
+	border-radius: 16px;
+}
+
+[data-theme="canadian"] .message.user .message-content {
+	color: var(--ca-white);
+	background: var(--ca-red);
+	border-bottom-right-radius: 4px;
+}
+
+[data-theme="canadian"] .message.bot .message-content {
+	color: var(--ca-ink);
+	background: var(--ca-white);
+	border: 1px solid #ecdcdc;
+	border-left: 4px solid var(--ca-red);
+	border-bottom-left-radius: 4px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="canadian"] .message.typing .message-content {
+	font-style: italic;
+	color: #8a6f6f;
+}
+
+[data-theme="canadian"] .message.error .message-content {
+	color: var(--ca-red-dark);
+	background: #fff1f2;
+}
+
+[data-theme="canadian"] .input-area {
+	padding: 0.9rem 1rem;
+	padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+	background: var(--ca-white);
+	border-top: 1px solid #ecdcdc;
+}
+
+[data-theme="canadian"] #q {
+	padding: 0.75rem 1rem;
+	font: inherit;
+	font-size: 1rem;
+	color: var(--ca-ink);
+	background: var(--ca-snow);
+	border: 2px solid #e3d0d0;
+	border-radius: 999px;
+}
+
+[data-theme="canadian"] #q:focus {
+	border-color: var(--ca-red);
+}
+
+[data-theme="canadian"] #q::placeholder {
+	color: #9a8080;
+}
+
+[data-theme="canadian"] #go {
+	padding: 0.75rem 1.5rem;
+	font: inherit;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--ca-white);
+	background: var(--ca-red);
+	border: none;
+	border-radius: 999px;
+	transition: background 0.2s;
+}
+
+[data-theme="canadian"] #go:hover:not(:disabled) {
+	background: var(--ca-red-dark);
+}
+
+[data-theme="canadian"] #go:disabled {
+	background: #e89aa4;
+}
+
+[data-theme="canadian"] .empty-state {
+	align-self: center;
+	margin-top: 2rem;
+	padding: 1rem;
+	max-width: 22rem;
+	text-align: center;
+	color: #8a6f6f;
+}

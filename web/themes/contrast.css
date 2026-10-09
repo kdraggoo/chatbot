@@ -1,0 +1,166 @@
+/* /srv/chatbot/web/themes/contrast.css: high contrast for low vision (WCAG AAA colors, large text, no motion) */
+
+[data-theme="contrast"] body {
+	font-family: Verdana, Tahoma, 'Segoe UI', system-ui, sans-serif;
+	font-size: 1.125rem;
+	background: #000000;
+	color: #ffffff;
+}
+
+[data-theme="contrast"] * {
+	animation: none !important;
+	transition: none !important;
+}
+
+/* A thick focus ring that never blends into the page */
+[data-theme="contrast"] :focus-visible {
+	outline: 4px solid #00ffff;
+	outline-offset: 3px;
+}
+
+[data-theme="contrast"] .header {
+	padding: 1rem;
+	background: #000000;
+	border-bottom: 4px solid #ffffff;
+}
+
+[data-theme="contrast"] .header h1 {
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: #ffff00;
+}
+
+[data-theme="contrast"] .header p {
+	margin-top: 0.4rem;
+	font-size: 1.05rem;
+	line-height: 1.5;
+	color: #ffffff;
+}
+
+[data-theme="contrast"] .theme-picker label {
+	font-weight: 700;
+	color: #ffffff;
+}
+
+[data-theme="contrast"] #theme {
+	font: inherit;
+	font-size: 1.05rem;
+	font-weight: 700;
+	padding: 0.4rem 0.5rem;
+	background: #000000;
+	color: #ffffff;
+	border: 3px solid #ffffff;
+	border-radius: 0;
+	cursor: pointer;
+	max-width: none;
+}
+
+[data-theme="contrast"] #chatContainer {
+	padding: 1rem;
+	background: #000000;
+	gap: 1.25rem;
+}
+
+[data-theme="contrast"] .message {
+	max-width: 90%;
+}
+
+[data-theme="contrast"] .message-label {
+	margin-bottom: 0.3rem;
+	font-size: 1rem;
+	font-weight: 700;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+[data-theme="contrast"] .message.user .message-label {
+	color: #ffff00;
+}
+
+[data-theme="contrast"] .message.bot .message-label {
+	color: #ffffff;
+}
+
+[data-theme="contrast"] .message-content {
+	padding: 0.85rem 1rem;
+	font-size: 1.125rem;
+	line-height: 1.6;
+	background: #000000;
+	border: 3px solid;
+	border-radius: 0;
+}
+
+[data-theme="contrast"] .message.user .message-content {
+	color: #ffff00;
+	border-color: #ffff00;
+}
+
+[data-theme="contrast"] .message.bot .message-content {
+	color: #ffffff;
+	border-color: #ffffff;
+}
+
+[data-theme="contrast"] .message.error .message-content {
+	color: #ffffff;
+	background: #000000;
+	border: 3px dashed #ff8080;
+}
+
+[data-theme="contrast"] .message.error .message-content::before {
+	content: '\26A0  ';
+	color: #ff8080;
+}
+
+[data-theme="contrast"] .input-area {
+	padding: 1rem;
+	background: #000000;
+	border-top: 4px solid #ffffff;
+}
+
+[data-theme="contrast"] #q {
+	padding: 0.8rem;
+	font: inherit;
+	font-size: 1.125rem;
+	background: #000000;
+	color: #ffffff;
+	border: 3px solid #ffffff;
+	border-radius: 0;
+}
+
+[data-theme="contrast"] #q:focus {
+	border-color: #00ffff;
+}
+
+[data-theme="contrast"] #q::placeholder {
+	color: #c8c8c8;
+	opacity: 1;
+}
+
+[data-theme="contrast"] #go {
+	padding: 0.8rem 1.5rem;
+	font: inherit;
+	font-size: 1.125rem;
+	font-weight: 700;
+	background: #ffff00;
+	color: #000000;
+	border: 3px solid #ffff00;
+	border-radius: 0;
+}
+
+[data-theme="contrast"] #go:hover:not(:disabled) {
+	background: #ffffff;
+	border-color: #ffffff;
+}
+
+[data-theme="contrast"] #go:disabled {
+	background: #000000;
+	color: #ffffff;
+	border: 3px dashed #ffffff;
+}
+
+[data-theme="contrast"] .empty-state {
+	padding: 2rem 1rem;
+	text-align: center;
+	font-size: 1.125rem;
+	color: #ffffff;
+}

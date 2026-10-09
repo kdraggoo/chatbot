@@ -1,0 +1,280 @@
+/* /srv/chatbot/web/themes/android.css: Google Messages (Material 3) look; follows the system light/dark setting */
+
+[data-theme="android"] {
+	--md-surface: #f8fafd;
+	--md-bar: #f8fafd;
+	--md-on-surface: #1f1f1f;
+	--md-on-surface-variant: #444746;
+	--md-outline: #c4c7c5;
+	--md-primary: #0b57d0;
+	--md-on-primary: #ffffff;
+	--md-sent: #d3e3fd;
+	--md-on-sent: #041e49;
+	--md-received: #e9eef6;
+	--md-on-received: #1f1f1f;
+	--md-field: #e9eef6;
+	--md-avatar: #7cacf8;
+	--md-on-avatar: #041e49;
+	--md-error: #b3261e;
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-theme="android"] {
+		--md-surface: #111318;
+		--md-bar: #1b1d22;
+		--md-on-surface: #e3e3e3;
+		--md-on-surface-variant: #c4c7c5;
+		--md-outline: #444746;
+		--md-primary: #a8c7fa;
+		--md-on-primary: #062e6f;
+		--md-sent: #004a77;
+		--md-on-sent: #c2e7ff;
+		--md-received: #282a2f;
+		--md-on-received: #e3e3e3;
+		--md-field: #282a2f;
+		--md-avatar: #0842a0;
+		--md-on-avatar: #d3e3fd;
+		--md-error: #f2b8b5;
+		color-scheme: dark;
+	}
+}
+
+[data-theme="android"] body {
+	font-family: Roboto, 'Google Sans', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+	background: var(--md-surface);
+	color: var(--md-on-surface);
+}
+
+/* Top app bar: back arrow, avatar and name on the left */
+[data-theme="android"] .header {
+	align-items: center;
+	padding: 0.6rem 1rem;
+	padding-top: max(0.6rem, env(safe-area-inset-top));
+	background: var(--md-bar);
+}
+
+[data-theme="android"] .header-main {
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+	min-width: 0;
+}
+
+[data-theme="android"] .header-main::before {
+	content: '\2190';
+	font-size: 1.4rem;
+	line-height: 1;
+	color: var(--md-on-surface);
+}
+
+[data-theme="android"] .avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--md-avatar);
+	color: var(--md-on-avatar);
+	font-size: 1.1rem;
+	font-weight: 500;
+}
+
+[data-theme="android"] .header h1 {
+	font-size: 1.25rem;
+	font-weight: 400;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+[data-theme="android"] .header p {
+	display: none;
+}
+
+[data-theme="android"] .theme-picker label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+}
+
+[data-theme="android"] #theme {
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: 500;
+	padding: 0.4rem 0.75rem;
+	color: var(--md-primary);
+	background: transparent;
+	border: 1px solid var(--md-outline);
+	border-radius: 999px;
+	cursor: pointer;
+}
+
+[data-theme="android"] #chatContainer {
+	padding: 0.75rem 1rem;
+	background: var(--md-surface);
+	gap: 2px;
+}
+
+[data-theme="android"] .message {
+	max-width: 78%;
+	animation: mdIn 0.2s ease-out;
+}
+
+@keyframes mdIn {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+[data-theme="android"] .message.user + .message.bot,
+[data-theme="android"] .message.bot + .message.user {
+	margin-top: 0.75rem;
+}
+
+[data-theme="android"] .message-label {
+	display: none;
+}
+
+[data-theme="android"] .message-content {
+	padding: 0.6rem 0.9rem;
+	border-radius: 20px;
+	font-size: 1rem;
+	line-height: 1.4;
+}
+
+[data-theme="android"] .message.user .message-content {
+	background: var(--md-sent);
+	color: var(--md-on-sent);
+}
+
+[data-theme="android"] .message.bot .message-content {
+	background: var(--md-received);
+	color: var(--md-on-received);
+}
+
+/* Messages in a run share a tight corner on the speaker's side */
+[data-theme="android"] .message.user:has(+ .message.user) .message-content {
+	border-bottom-right-radius: 4px;
+}
+
+[data-theme="android"] .message.user + .message.user .message-content {
+	border-top-right-radius: 4px;
+}
+
+[data-theme="android"] .message.bot:has(+ .message.bot) .message-content {
+	border-bottom-left-radius: 4px;
+}
+
+[data-theme="android"] .message.bot + .message.bot .message-content {
+	border-top-left-radius: 4px;
+}
+
+[data-theme="android"] .message.error .message-content {
+	color: var(--md-error);
+}
+
+[data-theme="android"] .message.typing .typing-text,
+[data-theme="android"] .message.typing .typing-indicator {
+	display: none;
+}
+
+[data-theme="android"] .message.typing .typing-dots {
+	display: flex;
+	gap: 4px;
+	padding: 0.3rem 0.1rem;
+}
+
+[data-theme="android"] .typing-dots span {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--md-on-surface-variant);
+	animation: mdTyping 1.2s ease-in-out infinite;
+}
+
+[data-theme="android"] .typing-dots span:nth-child(2) {
+	animation-delay: 0.15s;
+}
+
+[data-theme="android"] .typing-dots span:nth-child(3) {
+	animation-delay: 0.3s;
+}
+
+@keyframes mdTyping {
+	0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+	30% { opacity: 1; transform: translateY(-3px); }
+}
+
+[data-theme="android"] .input-area {
+	align-items: center;
+	padding: 0.5rem 0.75rem;
+	padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+	background: var(--md-surface);
+}
+
+[data-theme="android"] #q {
+	height: 48px;
+	padding: 0 1.1rem;
+	font: inherit;
+	font-size: 1rem;
+	background: var(--md-field);
+	color: var(--md-on-surface);
+	border: none;
+	border-radius: 24px;
+}
+
+[data-theme="android"] #q:focus {
+	box-shadow: inset 0 0 0 2px var(--md-primary);
+}
+
+[data-theme="android"] #q::placeholder {
+	color: var(--md-on-surface-variant);
+}
+
+/* Round send button with the Material "send" icon; the text label is kept for screen readers */
+[data-theme="android"] #go {
+	position: relative;
+	flex-shrink: 0;
+	width: 48px;
+	height: 48px;
+	border: none;
+	border-radius: 50%;
+	background: var(--md-primary);
+	color: transparent;
+	font-size: 0;
+	transition: opacity 0.15s;
+}
+
+[data-theme="android"] #go::before {
+	content: '';
+	position: absolute;
+	inset: 13px 11px 13px 15px;
+	background: var(--md-on-primary);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M2.01 21 23 12 2.01 3 2 10l15 2-15 2z'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M2.01 21 23 12 2.01 3 2 10l15 2-15 2z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+[data-theme="android"] #go:disabled {
+	opacity: 0.38;
+}
+
+[data-theme="android"] .empty-state {
+	align-self: center;
+	max-width: 80%;
+	margin: 0.5rem 0 1rem;
+	text-align: center;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	color: var(--md-on-surface-variant);
+	white-space: pre-line;
+}

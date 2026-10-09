@@ -1,0 +1,260 @@
+/* /srv/chatbot/web/themes/ironman.css: J.A.R.V.I.S. heads-up display in hot-rod red and gold */
+
+[data-theme="ironman"] {
+	--im-red: #9e1316;
+	--im-red-dark: #4a0709;
+	--im-gold: #f0b429;
+	--im-gold-light: #ffe08a;
+	--im-hud: #4fd8ff;
+	--im-hud-text: #d6f6ff;
+	--im-bg: #04070c;
+}
+
+[data-theme="ironman"] body {
+	font-family: 'Eurostile', 'Bank Gothic', 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', Arial, sans-serif;
+	background: var(--im-bg);
+	color: var(--im-hud-text);
+}
+
+/* Armor-plate header: red with a gold trim line */
+[data-theme="ironman"] .header {
+	align-items: center;
+	padding: 0.8rem 1rem;
+	background: linear-gradient(160deg, #c41a1e 0%, var(--im-red) 45%, var(--im-red-dark) 100%);
+	border-bottom: 3px solid var(--im-gold);
+	box-shadow: 0 2px 18px rgba(240, 180, 41, 0.35);
+}
+
+[data-theme="ironman"] .header-main {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: 0.85rem;
+	align-items: center;
+}
+
+/* Arc reactor */
+[data-theme="ironman"] .avatar {
+	display: block;
+	grid-row: span 2;
+	width: 46px;
+	height: 46px;
+	border-radius: 50%;
+	background:
+		radial-gradient(circle, #ffffff 0 14%, #bff6ff 22%, #4fd8ff 38%, rgba(79, 216, 255, 0.15) 56%, transparent 58%),
+		repeating-conic-gradient(rgba(79, 216, 255, 0.85) 0 18deg, rgba(4, 7, 12, 0.9) 18deg 30deg);
+	border: 3px solid #8a9aa8;
+	box-shadow: 0 0 12px #4fd8ff, 0 0 26px rgba(79, 216, 255, 0.55), inset 0 0 8px rgba(0, 0, 0, 0.8);
+	animation: imReactor 2.4s ease-in-out infinite;
+}
+
+@keyframes imReactor {
+	0%, 100% { box-shadow: 0 0 12px #4fd8ff, 0 0 26px rgba(79, 216, 255, 0.55), inset 0 0 8px rgba(0, 0, 0, 0.8); }
+	50% { box-shadow: 0 0 18px #4fd8ff, 0 0 40px rgba(79, 216, 255, 0.8), inset 0 0 8px rgba(0, 0, 0, 0.8); }
+}
+
+[data-theme="ironman"] .header h1 {
+	font-size: 1.35rem;
+	font-weight: 700;
+	letter-spacing: 4px;
+	color: var(--im-gold-light);
+	text-shadow: 0 0 8px rgba(240, 180, 41, 0.7);
+}
+
+[data-theme="ironman"] .header p {
+	font-size: 0.75rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	color: #ffd7a0;
+}
+
+[data-theme="ironman"] .theme-picker label {
+	font-size: 0.7rem;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--im-gold-light);
+}
+
+[data-theme="ironman"] #theme {
+	font: inherit;
+	font-size: 0.8rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	padding: 0.3rem 0.4rem;
+	background: rgba(0, 0, 0, 0.45);
+	color: var(--im-gold-light);
+	border: 1px solid var(--im-gold);
+	border-radius: 0;
+	cursor: pointer;
+}
+
+/* HUD field: faint grid and a glow at the center */
+[data-theme="ironman"] #chatContainer {
+	padding: 1.25rem 1rem;
+	gap: 1.1rem;
+	background:
+		radial-gradient(ellipse at 50% 40%, rgba(79, 216, 255, 0.10), transparent 65%),
+		repeating-linear-gradient(0deg, rgba(79, 216, 255, 0.05) 0 1px, transparent 1px 32px),
+		repeating-linear-gradient(90deg, rgba(79, 216, 255, 0.05) 0 1px, transparent 1px 32px),
+		var(--im-bg);
+}
+
+[data-theme="ironman"] #chatContainer::-webkit-scrollbar {
+	width: 6px;
+}
+
+[data-theme="ironman"] #chatContainer::-webkit-scrollbar-thumb {
+	background: var(--im-hud);
+}
+
+[data-theme="ironman"] .message {
+	animation: imScan 0.35s ease-out;
+}
+
+@keyframes imScan {
+	from {
+		opacity: 0;
+		clip-path: inset(0 100% 0 0);
+	}
+	to {
+		opacity: 1;
+		clip-path: inset(0 0 0 0);
+	}
+}
+
+[data-theme="ironman"] .message-label {
+	margin-bottom: 0.3rem;
+	font-size: 0.68rem;
+	letter-spacing: 3px;
+	text-transform: uppercase;
+}
+
+[data-theme="ironman"] .message.user .message-label {
+	color: var(--im-gold);
+}
+
+[data-theme="ironman"] .message.bot .message-label {
+	color: var(--im-hud);
+}
+
+[data-theme="ironman"] .message.bot .message-label::before {
+	content: '\25C9  ';
+}
+
+/* Panels with a clipped corner, like HUD readouts */
+[data-theme="ironman"] .message-content {
+	padding: 0.75rem 1rem;
+	line-height: 1.5;
+	letter-spacing: 0.3px;
+}
+
+[data-theme="ironman"] .message.bot .message-content {
+	color: var(--im-hud-text);
+	background: linear-gradient(135deg, rgba(79, 216, 255, 0.16), rgba(79, 216, 255, 0.04));
+	border: 1px solid rgba(79, 216, 255, 0.75);
+	border-left: 3px solid var(--im-hud);
+	box-shadow: 0 0 14px rgba(79, 216, 255, 0.18), inset 0 0 18px rgba(79, 216, 255, 0.06);
+	clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+	text-shadow: 0 0 6px rgba(79, 216, 255, 0.35);
+}
+
+[data-theme="ironman"] .message.user .message-content {
+	color: #fff3d6;
+	background: linear-gradient(135deg, rgba(196, 26, 30, 0.75), rgba(74, 7, 9, 0.85));
+	border: 1px solid var(--im-gold);
+	border-right: 3px solid var(--im-gold);
+	box-shadow: 0 0 12px rgba(240, 180, 41, 0.25);
+	clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+}
+
+[data-theme="ironman"] .message.typing .message-content {
+	letter-spacing: 3px;
+	text-transform: uppercase;
+	font-size: 0.85rem;
+}
+
+[data-theme="ironman"] .typing-indicator {
+	animation: imBlink 0.8s steps(2, start) infinite;
+}
+
+@keyframes imBlink {
+	to { visibility: hidden; }
+}
+
+[data-theme="ironman"] .message.error .message-content {
+	color: #ffd0d0;
+	background: rgba(255, 40, 40, 0.15);
+	border-color: #ff4040;
+	text-shadow: none;
+}
+
+[data-theme="ironman"] .message.error .message-label {
+	color: #ff6060;
+}
+
+[data-theme="ironman"] .input-area {
+	padding: 0.9rem 1rem;
+	padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+	background: linear-gradient(0deg, #0a0f17, #060a10);
+	border-top: 1px solid rgba(79, 216, 255, 0.6);
+	box-shadow: 0 -2px 16px rgba(79, 216, 255, 0.15);
+}
+
+[data-theme="ironman"] #q {
+	padding: 0.75rem 0.9rem;
+	font: inherit;
+	font-size: 1rem;
+	letter-spacing: 0.5px;
+	background: rgba(79, 216, 255, 0.06);
+	color: var(--im-hud-text);
+	border: 1px solid rgba(79, 216, 255, 0.55);
+	border-radius: 0;
+}
+
+[data-theme="ironman"] #q:focus {
+	border-color: var(--im-hud);
+	box-shadow: 0 0 12px rgba(79, 216, 255, 0.45);
+}
+
+[data-theme="ironman"] #q::placeholder {
+	color: rgba(79, 216, 255, 0.55);
+	letter-spacing: 1px;
+}
+
+[data-theme="ironman"] #go {
+	padding: 0.75rem 1.4rem;
+	font: inherit;
+	font-size: 0.95rem;
+	font-weight: 700;
+	letter-spacing: 3px;
+	text-transform: uppercase;
+	color: #2b0405;
+	background: linear-gradient(180deg, var(--im-gold-light), var(--im-gold) 55%, #c98a10);
+	border: 1px solid var(--im-gold-light);
+	border-radius: 0;
+	clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+	transition: filter 0.2s;
+}
+
+[data-theme="ironman"] #go:hover:not(:disabled) {
+	filter: brightness(1.15) drop-shadow(0 0 6px var(--im-gold));
+}
+
+[data-theme="ironman"] #go:disabled {
+	color: var(--im-gold);
+	background: rgba(240, 180, 41, 0.12);
+	border-color: rgba(240, 180, 41, 0.5);
+}
+
+[data-theme="ironman"] .empty-state {
+	align-self: center;
+	margin-top: 2rem;
+	padding: 0.6rem 1.2rem;
+	font-size: 0.8rem;
+	letter-spacing: 3px;
+	text-transform: uppercase;
+	text-align: center;
+	color: var(--im-hud);
+	border-top: 1px solid rgba(79, 216, 255, 0.5);
+	border-bottom: 1px solid rgba(79, 216, 255, 0.5);
+	text-shadow: 0 0 8px rgba(79, 216, 255, 0.6);
+}

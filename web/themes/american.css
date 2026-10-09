@@ -1,0 +1,212 @@
+/* /srv/chatbot/web/themes/american.css: Old Glory red, white and blue */
+
+[data-theme="american"] {
+	--us-navy: #0a3161;
+	--us-red: #b31942;
+	--us-white: #ffffff;
+	--us-paper: #f7f5ef;
+	--us-ink: #14213d;
+}
+
+[data-theme="american"] body {
+	font-family: Georgia, 'Times New Roman', Times, serif;
+	background: var(--us-paper);
+	color: var(--us-ink);
+}
+
+/* Star field on navy, with a band of stripes underneath */
+[data-theme="american"] .header {
+	position: relative;
+	align-items: center;
+	padding: 1rem 1rem 1.4rem;
+	color: var(--us-white);
+	background:
+		radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 1.4px, transparent 2px) 0 0 / 22px 22px,
+		radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 1.4px, transparent 2px) 11px 11px / 22px 22px,
+		var(--us-navy);
+}
+
+[data-theme="american"] .header::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 12px;
+	background: repeating-linear-gradient(180deg, var(--us-red) 0 2px, var(--us-white) 2px 4px);
+	border-top: 1px solid var(--us-white);
+}
+
+[data-theme="american"] .header-main {
+	padding: 0.4rem 0.9rem;
+	background: var(--us-navy);
+	box-shadow: 0 0 0 6px var(--us-navy);
+}
+
+[data-theme="american"] .header h1 {
+	font-size: 1.5rem;
+	font-weight: 700;
+	letter-spacing: 1px;
+	font-variant: small-caps;
+}
+
+[data-theme="american"] .header p {
+	margin-top: 0.2rem;
+	font-size: 0.85rem;
+	font-style: italic;
+	color: #dbe4f0;
+}
+
+[data-theme="american"] .theme-picker {
+	padding: 0.3rem;
+	background: var(--us-navy);
+}
+
+[data-theme="american"] .theme-picker label {
+	font-size: 0.75rem;
+	font-variant: small-caps;
+	letter-spacing: 1px;
+}
+
+[data-theme="american"] #theme {
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 0.3rem 0.4rem;
+	color: var(--us-navy);
+	background: var(--us-white);
+	border: 2px solid var(--us-red);
+	border-radius: 3px;
+	cursor: pointer;
+}
+
+[data-theme="american"] #chatContainer {
+	padding: 1.25rem 1rem;
+	gap: 1rem;
+	background: var(--us-paper);
+}
+
+[data-theme="american"] .message {
+	animation: usIn 0.3s ease-out;
+}
+
+@keyframes usIn {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+[data-theme="american"] .message-label {
+	margin-bottom: 0.25rem;
+	font-size: 0.8rem;
+	font-variant: small-caps;
+	letter-spacing: 1px;
+	color: var(--us-navy);
+}
+
+[data-theme="american"] .message.bot .message-label::before {
+	content: '\2605  ';
+	color: var(--us-red);
+}
+
+[data-theme="american"] .message-content {
+	padding: 0.75rem 1rem;
+	font-size: 1.02rem;
+	line-height: 1.55;
+	border-radius: 6px;
+}
+
+[data-theme="american"] .message.user .message-content {
+	color: var(--us-white);
+	background: var(--us-red);
+	border: 2px solid var(--us-red);
+	box-shadow: 3px 3px 0 var(--us-navy);
+}
+
+[data-theme="american"] .message.bot .message-content {
+	color: var(--us-ink);
+	background: var(--us-white);
+	border: 2px solid var(--us-navy);
+	box-shadow: 3px 3px 0 var(--us-red);
+}
+
+[data-theme="american"] .message.typing .message-content {
+	font-style: italic;
+	color: var(--us-navy);
+}
+
+[data-theme="american"] .message.error .message-content {
+	color: var(--us-red);
+	background: #fff0f3;
+	border-color: var(--us-red);
+}
+
+[data-theme="american"] .input-area {
+	padding: 0.9rem 1rem;
+	padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+	background: var(--us-white);
+	border-top: 4px solid var(--us-navy);
+	box-shadow: inset 0 3px 0 var(--us-red);
+}
+
+[data-theme="american"] #q {
+	padding: 0.75rem 0.9rem;
+	font: inherit;
+	font-size: 1rem;
+	color: var(--us-ink);
+	background: var(--us-paper);
+	border: 2px solid var(--us-navy);
+	border-radius: 6px;
+}
+
+[data-theme="american"] #q:focus {
+	border-color: var(--us-red);
+	box-shadow: 0 0 0 3px rgba(179, 25, 66, 0.2);
+}
+
+[data-theme="american"] #q::placeholder {
+	color: #5f6b80;
+	font-style: italic;
+}
+
+[data-theme="american"] #go {
+	padding: 0.75rem 1.4rem;
+	font: inherit;
+	font-size: 1rem;
+	font-weight: 700;
+	font-variant: small-caps;
+	letter-spacing: 1px;
+	color: var(--us-white);
+	background: var(--us-navy);
+	border: 2px solid var(--us-navy);
+	border-radius: 6px;
+	box-shadow: 3px 3px 0 var(--us-red);
+	transition: transform 0.1s, box-shadow 0.1s;
+}
+
+[data-theme="american"] #go:hover:not(:disabled) {
+	transform: translate(-1px, -1px);
+	box-shadow: 4px 4px 0 var(--us-red);
+}
+
+[data-theme="american"] #go:disabled {
+	color: #c8d1de;
+	background: #4a6283;
+	border-color: #4a6283;
+	box-shadow: none;
+}
+
+[data-theme="american"] .empty-state {
+	align-self: center;
+	margin-top: 2rem;
+	padding: 1rem 1.5rem;
+	text-align: center;
+	font-style: italic;
+	color: var(--us-navy);
+	border-top: 2px solid var(--us-red);
+	border-bottom: 2px solid var(--us-red);
+}

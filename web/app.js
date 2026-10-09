@@ -97,7 +97,7 @@ const THEMES = {
     },
 };
 
-let currentTheme = THEMES[document.documentElement.dataset.theme] ? document.documentElement.dataset.theme : 'retro';
+let currentTheme = THEMES[document.documentElement.dataset.theme] ? document.documentElement.dataset.theme : 'ios';
 
 function theme() {
     return THEMES[currentTheme];
@@ -105,7 +105,7 @@ function theme() {
 
 function applyTheme(name, save = true) {
     if (!THEMES[name]) {
-        name = 'retro';
+        name = 'ios';
     }
     currentTheme = name;
     const t = theme();

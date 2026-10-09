@@ -164,3 +164,39 @@
 	font-size: 1.125rem;
 	color: #ffffff;
 }
+
+/* Stats page (stats/) */
+[data-theme="contrast"] {
+	--dash-panel: #000000;
+	--dash-border: #ffffff;
+	--dash-border-width: 3px;
+	--dash-text: #ffffff;
+	--dash-muted: #ffffff;
+	--dash-accent: #ffff00;
+	--dash-on-accent: #000000;
+	--dash-good: #7cff7c;
+	--dash-bad: #ff8080;
+	--dash-on-status: #000000;
+	--dash-grid: #9a9a9a;
+	--dash-radius: 0;
+	--dash-shadow: none;
+	--dash-tip-bg: #ffff00;
+	--dash-tip-text: #000000;
+}
+
+[data-theme="contrast"] .chart text {
+	font-size: 13px;
+}
+
+[data-theme="contrast"] .panel h2,
+[data-theme="contrast"] .kpi .label,
+[data-theme="contrast"] .range button {
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+[data-theme="contrast"] .stats-link {
+	font-size: 1.05rem;
+	font-weight: 700;
+	text-decoration: underline;
+}

@@ -1,0 +1,329 @@
+/* /srv/chatbot/web/stats/stats.css: stats page layout; each theme sets the --dash-* tokens at the end of themes/<name>.css */
+
+body.stats-page {
+	display: block;
+	height: auto;
+	min-height: 100vh;
+	min-height: 100dvh;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.stats-main {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	max-width: 960px;
+	margin: 0 auto;
+	padding: 1rem 16px 2rem;
+	color: var(--dash-text);
+}
+
+.muted {
+	color: var(--dash-muted);
+}
+
+.small {
+	font-size: 0.85em;
+	line-height: 1.45;
+}
+
+.panel {
+	min-width: 0;
+	padding: 1rem;
+	background: var(--dash-panel);
+	color: var(--dash-text);
+	border: var(--dash-border-width, 1px) solid var(--dash-border);
+	border-radius: var(--dash-radius);
+	box-shadow: var(--dash-shadow);
+	clip-path: var(--dash-clip, none);
+}
+
+.panel h2,
+.kpi .label {
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: var(--dash-muted);
+	text-transform: var(--dash-heading-case, none);
+	letter-spacing: var(--dash-heading-spacing, normal);
+}
+
+.panel h2 {
+	margin-bottom: 0.6rem;
+}
+
+.panel p + p {
+	margin-top: 0.5rem;
+}
+
+.about p {
+	line-height: 1.5;
+}
+
+/* Toolbar: back link and the range filter */
+.toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.back-link {
+	color: var(--dash-accent);
+	text-decoration: none;
+	font-weight: 600;
+}
+
+.back-link:hover {
+	text-decoration: underline;
+}
+
+.range {
+	display: inline-flex;
+	border: var(--dash-border-width, 1px) solid var(--dash-border);
+	border-radius: var(--dash-radius);
+	background: var(--dash-panel);
+	overflow: hidden;
+}
+
+.range button {
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 0.4rem 0.75rem;
+	color: var(--dash-text);
+	background: transparent;
+	border: none;
+	cursor: pointer;
+}
+
+.range button + button {
+	border-left: var(--dash-border-width, 1px) solid var(--dash-border);
+}
+
+.range button[aria-pressed="true"] {
+	background: var(--dash-accent);
+	color: var(--dash-on-accent);
+	font-weight: 600;
+}
+
+/* Status banner */
+.status-line {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+.status-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 50%;
+	font-size: 1rem;
+	color: var(--dash-on-accent);
+	background: var(--dash-muted);
+}
+
+.status.ok .status-icon {
+	background: var(--dash-good);
+	color: var(--dash-on-status);
+}
+
+.status.bad .status-icon {
+	background: var(--dash-bad);
+	color: var(--dash-on-status);
+}
+
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0.75rem 0 0.5rem;
+	list-style: none;
+}
+
+.chips li {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.25rem 0.6rem;
+	font-size: 0.85rem;
+	border: var(--dash-border-width, 1px) solid var(--dash-grid);
+	border-radius: 999px;
+}
+
+.chips .mark {
+	font-weight: 700;
+	color: var(--dash-good);
+}
+
+.chips li.down .mark {
+	color: var(--dash-bad);
+}
+
+/* Headline numbers */
+.kpis {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+	gap: 1rem;
+}
+
+.kpi .value {
+	margin: 0.35rem 0 0.25rem;
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+	color: var(--dash-text);
+}
+
+.kpi .value .unit {
+	font-size: 0.55em;
+	font-weight: 600;
+	margin-left: 0.15em;
+	color: var(--dash-muted);
+}
+
+/* Charts: inline SVG drawn by stats.js */
+.chart {
+	position: relative;
+	width: 100%;
+}
+
+.chart svg {
+	display: block;
+	width: 100%;
+	height: 190px;
+	overflow: visible;
+}
+
+.chart .bar {
+	fill: var(--dash-accent);
+}
+
+.chart .hit {
+	fill: transparent;
+	cursor: default;
+}
+
+.chart .col.active .bar {
+	opacity: 0.75;
+}
+
+.chart .grid {
+	stroke: var(--dash-grid);
+	stroke-width: 1;
+}
+
+.chart .baseline {
+	stroke: var(--dash-muted);
+	stroke-width: 1;
+}
+
+.chart text {
+	fill: var(--dash-muted);
+	font-size: 11px;
+	font-family: inherit;
+	font-variant-numeric: tabular-nums;
+}
+
+.chart .fail,
+.fail-dot {
+	fill: var(--dash-bad);
+	background: var(--dash-bad);
+}
+
+.chart .empty {
+	font-size: 13px;
+}
+
+.fail-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	vertical-align: middle;
+}
+
+.chart-tip {
+	position: fixed;
+	z-index: 10;
+	padding: 0.4rem 0.6rem;
+	font-size: 0.8rem;
+	line-height: 1.4;
+	pointer-events: none;
+	white-space: nowrap;
+	background: var(--dash-tip-bg, var(--dash-text));
+	color: var(--dash-tip-text, var(--dash-panel));
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.chart-tip strong {
+	display: block;
+}
+
+/* Table views */
+details {
+	margin-top: 0.75rem;
+	font-size: 0.85rem;
+}
+
+summary {
+	cursor: pointer;
+	color: var(--dash-accent);
+}
+
+.table-wrap {
+	max-height: 260px;
+	margin-top: 0.5rem;
+	overflow: auto;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+	padding: 0.3rem 0.5rem;
+	text-align: right;
+	border-bottom: 1px solid var(--dash-grid);
+}
+
+th:first-child,
+td:first-child {
+	text-align: left;
+}
+
+th {
+	font-weight: 600;
+	color: var(--dash-muted);
+}
+
+.footer {
+	text-align: center;
+}
+
+@media (max-width: 520px) {
+	.kpis {
+		grid-template-columns: 1fr 1fr;
+		gap: 0.6rem;
+	}
+
+	.kpi .value {
+		font-size: 1.5rem;
+	}
+
+	.range button {
+		padding: 0.4rem 0.5rem;
+	}
+}

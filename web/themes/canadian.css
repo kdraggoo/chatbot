@@ -191,3 +191,19 @@
 	text-align: center;
 	color: #8a6f6f;
 }
+
+/* Stats page (stats/) */
+[data-theme="canadian"] {
+	--dash-panel: var(--ca-white);
+	--dash-border: #ecdcdc;
+	--dash-text: var(--ca-ink);
+	--dash-muted: #6b5555;
+	--dash-accent: var(--ca-red);
+	--dash-on-accent: #ffffff;
+	--dash-good: #1d6b35;
+	--dash-bad: var(--ca-red-dark);
+	--dash-on-status: #ffffff;
+	--dash-grid: #efe3e3;
+	--dash-radius: 12px;
+	--dash-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}

@@ -278,3 +278,26 @@
 	color: var(--md-on-surface-variant);
 	white-space: pre-line;
 }
+
+/* Stats page (stats/) */
+[data-theme="android"] {
+	--dash-panel: var(--md-received);
+	--dash-border: transparent;
+	--dash-text: var(--md-on-surface);
+	--dash-muted: var(--md-on-surface-variant);
+	--dash-accent: var(--md-primary);
+	--dash-on-accent: var(--md-on-primary);
+	--dash-good: #146c2e;
+	--dash-bad: var(--md-error);
+	--dash-on-status: #ffffff;
+	--dash-grid: var(--md-outline);
+	--dash-radius: 16px;
+	--dash-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-theme="android"] {
+		--dash-good: #6dd58c;
+		--dash-on-status: #1f1f1f;
+	}
+}

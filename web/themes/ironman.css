@@ -258,3 +258,24 @@
 	border-bottom: 1px solid rgba(79, 216, 255, 0.5);
 	text-shadow: 0 0 8px rgba(79, 216, 255, 0.6);
 }
+
+/* Stats page (stats/) */
+[data-theme="ironman"] {
+	--dash-panel: rgba(79, 216, 255, 0.07);
+	--dash-border: rgba(79, 216, 255, 0.75);
+	--dash-text: var(--im-hud-text);
+	--dash-muted: rgba(214, 246, 255, 0.72);
+	--dash-accent: var(--im-gold);
+	--dash-on-accent: #1a0f00;
+	--dash-good: var(--im-hud);
+	--dash-bad: #ff5a5f;
+	--dash-on-status: #04070c;
+	--dash-grid: rgba(79, 216, 255, 0.22);
+	--dash-radius: 0;
+	--dash-shadow: 0 0 14px rgba(79, 216, 255, 0.18), inset 0 0 18px rgba(79, 216, 255, 0.06);
+	--dash-clip: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+	--dash-heading-case: uppercase;
+	--dash-heading-spacing: 2px;
+	--dash-tip-bg: #04070c;
+	--dash-tip-text: var(--im-hud-text);
+}

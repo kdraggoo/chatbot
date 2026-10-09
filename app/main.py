@@ -1239,3 +1239,59 @@ async def chat_stats(
             "daily": list(probe_daily.values()),
         },
     }
+
+
+PUBLIC_STATS_DAYS = (7, 30, 90, 365)
+PUBLIC_STATS_TTL = 60  # seconds; the page is public, so repeat loads reuse one computation
+_public_stats_cache: dict = {}
+
+
+@app.get("/public/stats")
+async def public_stats(days: int = Query(30)):
+    """Aggregate-only stats for the public dashboard (web/stats/).
+
+    Built from the admin stats by whitelisting fields: no question text, document
+    names, error details or tuning settings ever leave this function.
+    """
+    if days not in PUBLIC_STATS_DAYS:
+        raise HTTPException(status_code=400, detail=f"days must be one of {list(PUBLIC_STATS_DAYS)}")
+    cached = _public_stats_cache.get(days)
+    if cached and time.monotonic() - cached[0] < PUBLIC_STATS_TTL:
+        return cached[1]
+
+    stats = await chat_stats(min(days, STATS_RETENTION_DAYS), True)
+    usage, monitoring, kb = stats["usage"], stats["monitoring"], stats["knowledge_base"]
+    last = monitoring["last"]
+    public = {
+        "generated_at": stats["generated_at"],
+        "days": days,
+        "logging_since": stats["logging_since"],
+        "backfilled_since": stats["backfilled_since"],
+        "status": {name: component["ok"] for name, component in stats["health"].items()},
+        "models": {"generation": GEN_MODEL, "embedding": EMBED_MODEL},
+        "knowledge_base": {"documents": kb["total_documents"], "chunks": kb["total_chunks"]} if kb["ok"] else None,
+        "usage": {
+            "questions": usage["questions"],
+            "answered": usage["answered"],
+            "errors": usage["errors"],
+            "matched": usage["context_known"] - usage["no_context"],
+            "context_known": usage["context_known"],
+            "p50_ms": usage["p50_ms"],
+            "p95_ms": usage["p95_ms"],
+            "daily": usage["daily"],
+        },
+        "monitoring": {
+            "runs": monitoring["runs"],
+            "failures": monitoring["failures"],
+            "p50_ms": monitoring["p50_ms"],
+            "p95_ms": monitoring["p95_ms"],
+            "last": {
+                "at": datetime.utcfromtimestamp(last["ts"]).isoformat() + "Z",
+                "ok": last["status"] == "ok",
+                "duration_ms": last["duration_ms"],
+            } if last else None,
+            "daily": [{k: d[k] for k in ("date", "runs", "failures", "median_ms")} for d in monitoring["daily"]],
+        },
+    }
+    _public_stats_cache[days] = (time.monotonic(), public)
+    return public

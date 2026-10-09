@@ -99,6 +99,10 @@ body {
 		display: none;
 	}
 
+	#theme {
+		max-width: 7rem;
+	}
+
 	.theme-picker label {
 		position: absolute;
 		width: 1px;
@@ -106,4 +110,16 @@ body {
 		overflow: hidden;
 		clip: rect(0 0 0 0);
 	}
+}
+
+/* Link to the public stats page (stats/), beside the theme picker */
+.stats-link {
+	margin-right: 0.5rem;
+	font-size: 0.85rem;
+	color: var(--dash-accent);
+	text-decoration: none;
+}
+
+.stats-link:hover {
+	text-decoration: underline;
 }

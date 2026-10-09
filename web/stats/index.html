@@ -1,0 +1,104 @@
+<!-- /srv/chatbot/web/stats/index.html: public stats page; aggregates only, from /chatbot/api/public/stats -->
+<!doctype html>
+<html data-theme="ios" lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+		<title>Chatbot Stats</title>
+		<script>
+			// Apply the saved theme before first paint (stats.js handles the picker); shared with the chat page
+			(function () {
+				var themes = ['retro', 'ios', 'android', 'contrast', 'ironman', 'american', 'canadian', 'synthwave'], theme = null;
+				try { theme = new URLSearchParams(location.search).get('theme'); } catch (e) {}
+				if (themes.indexOf(theme) < 0) {
+					try { theme = localStorage.getItem('chatbot-theme'); } catch (e) {}
+				}
+				if (themes.indexOf(theme) >= 0) {
+					document.documentElement.setAttribute('data-theme', theme);
+				}
+			})();
+		</script>
+		<link rel="stylesheet" href="../base.css?v=5">
+		<link rel="stylesheet" href="../themes/retro.css?v=8">
+		<link rel="stylesheet" href="../themes/ios.css?v=8">
+		<link rel="stylesheet" href="../themes/android.css?v=8">
+		<link rel="stylesheet" href="../themes/contrast.css?v=8">
+		<link rel="stylesheet" href="../themes/ironman.css?v=8">
+		<link rel="stylesheet" href="../themes/american.css?v=8">
+		<link rel="stylesheet" href="../themes/canadian.css?v=8">
+		<link rel="stylesheet" href="../themes/synthwave.css?v=8">
+		<link rel="stylesheet" href="./stats.css?v=1">
+	</head>
+	<body class="stats-page">
+		<div class="header">
+			<div class="header-main">
+				<div class="avatar" id="avatar" aria-hidden="true">KD</div>
+				<h1 id="title">Resume Bot Stats</h1>
+				<p id="subtitle">How the resume chatbot is doing.</p>
+			</div>
+			<div class="theme-picker">
+				<label for="theme">Theme</label>
+				<select id="theme">
+					<option value="retro">Retro</option>
+					<option value="ios">iOS</option>
+					<option value="android">Android</option>
+					<option value="contrast">High Contrast</option>
+					<option value="ironman">Iron Man</option>
+					<option value="american">American</option>
+					<option value="canadian">Canadian</option>
+					<option value="synthwave">Synthwave</option>
+				</select>
+			</div>
+		</div>
+
+		<main class="stats-main">
+			<div class="toolbar">
+				<a class="back-link" href="../">&larr; Ask the bot</a>
+				<div class="range" role="group" aria-label="Time range">
+					<button type="button" data-days="7">7 days</button>
+					<button type="button" data-days="30" aria-pressed="true">30 days</button>
+					<button type="button" data-days="90">90 days</button>
+					<button type="button" data-days="365">1 year</button>
+				</div>
+			</div>
+
+			<section class="panel status" id="status" aria-live="polite">
+				<div class="status-line"><span class="status-icon" id="statusIcon">&hellip;</span> <span id="statusText">Loading&hellip;</span></div>
+				<ul class="chips" id="chips"></ul>
+				<p class="muted small" id="lastCheck"></p>
+			</section>
+
+			<section class="kpis" id="kpis"></section>
+
+			<section class="panel">
+				<h2>Questions per day</h2>
+				<div class="chart" id="questionsChart"></div>
+				<details>
+					<summary>Show as table</summary>
+					<div class="table-wrap" id="questionsTable"></div>
+				</details>
+			</section>
+
+			<section class="panel">
+				<h2>Hourly health check: median answer time</h2>
+				<p class="muted small">Every hour a test question runs through the whole pipeline. <span class="fail-key"><span class="fail-dot" aria-hidden="true"></span> marks a day with a failed check.</span></p>
+				<div class="chart" id="probeChart"></div>
+				<details>
+					<summary>Show as table</summary>
+					<div class="table-wrap" id="probeTable"></div>
+				</details>
+			</section>
+
+			<section class="panel about">
+				<h2>How it works</h2>
+				<p id="about"></p>
+				<p class="muted small">This page shows counts only. Question text is never published.</p>
+			</section>
+
+			<p class="muted small footer" id="updated"></p>
+		</main>
+
+		<div class="chart-tip" id="tip" role="tooltip" hidden></div>
+		<script src="./stats.js?v=3"></script>
+	</body>
+</html>

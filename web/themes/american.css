@@ -210,3 +210,27 @@
 	border-top: 2px solid var(--us-red);
 	border-bottom: 2px solid var(--us-red);
 }
+
+/* Stats page (stats/) */
+[data-theme="american"] {
+	--dash-panel: var(--us-white);
+	--dash-border: var(--us-navy);
+	--dash-border-width: 2px;
+	--dash-text: var(--us-ink);
+	--dash-muted: #4a5470;
+	--dash-accent: var(--us-navy);
+	--dash-on-accent: #ffffff;
+	--dash-good: #1d6b35;
+	--dash-bad: var(--us-red);
+	--dash-on-status: #ffffff;
+	--dash-grid: #d9dbe3;
+	--dash-radius: 4px;
+	--dash-shadow: 3px 3px 0 var(--us-red);
+	--dash-heading-case: uppercase;
+	--dash-heading-spacing: 1px;
+}
+
+/* The header is navy, so the stats link uses white rather than the navy accent */
+[data-theme="american"] .header .stats-link {
+	color: var(--us-white);
+}

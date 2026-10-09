@@ -181,3 +181,23 @@
 	padding: 2rem;
 	font-style: italic;
 }
+
+/* Stats page (stats/) */
+[data-theme="retro"] {
+	--dash-panel: #001100;
+	--dash-border: #00cc33;
+	--dash-text: #00ff41;
+	--dash-muted: #00cc33;
+	--dash-accent: #00ff41;
+	--dash-on-accent: #000000;
+	--dash-good: #00ff41;
+	--dash-bad: #ff6666;
+	--dash-on-status: #000000;
+	--dash-grid: #005511;
+	--dash-radius: 8px;
+	--dash-shadow: 0 0 5px rgba(0, 204, 51, 0.2);
+	--dash-heading-case: uppercase;
+	--dash-heading-spacing: 1px;
+	--dash-tip-bg: #000000;
+	--dash-tip-text: #00ff41;
+}

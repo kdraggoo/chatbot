@@ -256,3 +256,27 @@
 @keyframes swBlink {
 	to { visibility: hidden; }
 }
+
+/* Stats page (stats/) */
+[data-theme="synthwave"] {
+	--dash-panel: rgba(18, 6, 43, 0.85);
+	--dash-border: var(--sw-cyan);
+	--dash-text: var(--sw-text);
+	--dash-muted: #c4b2ea;
+	--dash-accent: var(--sw-pink);
+	--dash-on-accent: #12062b;
+	--dash-good: var(--sw-cyan);
+	--dash-bad: var(--sw-yellow);
+	--dash-on-status: #12062b;
+	--dash-grid: rgba(5, 217, 232, 0.25);
+	--dash-radius: 6px;
+	--dash-shadow: 0 0 12px rgba(5, 217, 232, 0.45), inset 0 0 12px rgba(5, 217, 232, 0.12);
+	--dash-heading-case: uppercase;
+	--dash-heading-spacing: 2px;
+	--dash-tip-bg: #12062b;
+	--dash-tip-text: var(--sw-text);
+}
+
+[data-theme="synthwave"] .stats-page .chart .bar {
+	filter: drop-shadow(0 0 4px rgba(255, 42, 109, 0.7));
+}

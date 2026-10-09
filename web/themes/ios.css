@@ -311,3 +311,49 @@
 	color: var(--ios-secondary);
 	white-space: pre-line;
 }
+
+/* Stats page (stats/) */
+[data-theme="ios"] {
+	--dash-panel: #f2f2f7;
+	--dash-border: transparent;
+	--dash-text: var(--ios-text);
+	--dash-muted: #6c6c70;
+	--dash-accent: var(--ios-blue);
+	--dash-on-accent: #ffffff;
+	--dash-good: #248a3d;
+	--dash-bad: #d70015;
+	--dash-on-status: #ffffff;
+	--dash-grid: var(--ios-separator);
+	--dash-radius: 12px;
+	--dash-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+	[data-theme="ios"] {
+		--dash-panel: #1c1c1e;
+		--dash-muted: #98989d;
+		--dash-good: #30d158;
+		--dash-bad: #ff453a;
+		--dash-on-status: #000000;
+	}
+}
+
+/* Stats link at the top left, where iOS puts the back button; theme menu stays top right */
+[data-theme="ios"] .theme-picker {
+	left: 1rem;
+	justify-content: space-between;
+	pointer-events: none;
+}
+
+[data-theme="ios"] .theme-picker > * {
+	pointer-events: auto;
+}
+
+[data-theme="ios"] .theme-picker #theme {
+	margin-left: auto;
+}
+
+[data-theme="ios"] .stats-link {
+	font-size: 1rem;
+	color: var(--ios-blue);
+}

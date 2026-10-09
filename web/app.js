@@ -95,6 +95,28 @@ const THEMES = {
         placeholder: 'Type your message...',
         empty: 'INSERT QUESTION TO CONTINUE',
     },
+    halloween: {
+        title: "Kevin's Haunted Resume",
+        subtitle: "Ask the spirits about Kevin's employment history... if you dare.",
+        avatar: '🎃',
+        labels: { user: 'Trick-or-Treater', bot: 'Ghost of Resumes Past' },
+        send: 'Boo!',
+        sending: 'Summoning',
+        typing: 'Consulting the spirits',
+        placeholder: 'Ask, if you dare...',
+        empty: "🕸️ The spirits are listening.\nAsk anything about Kevin's career.",
+    },
+    christmas: {
+        title: "Kevin's Holiday Resume",
+        subtitle: "Ask Santa's helper about Kevin's employment history.",
+        avatar: '🎄',
+        labels: { user: 'You', bot: "Santa's Helper" },
+        send: 'Send',
+        sending: 'Wrapping',
+        typing: 'Checking the list',
+        placeholder: 'Ask your question...',
+        empty: "❄️ Ho ho ho!\nAsk anything about Kevin's career.",
+    },
 };
 
 let currentTheme = THEMES[document.documentElement.dataset.theme] ? document.documentElement.dataset.theme : 'ios';

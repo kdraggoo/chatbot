@@ -14,6 +14,8 @@ const THEMES = {
     american: { title: '★ State of the Bot ★', subtitle: 'A report to the people on the resume chatbot.', avatar: '', ok: 'The bot is strong', bad: 'The bot needs help' },
     canadian: { title: "How's the Bot Doing, Eh?", subtitle: 'Usage and health of the resume chatbot.', avatar: '🍁', ok: 'All good, eh', bad: 'Sorry, something broke' },
     synthwave: { title: 'HIGH SCORES', subtitle: 'Resume chatbot stats.', avatar: '', ok: 'ALL SYSTEMS GO', bad: 'GAME OVER' },
+    halloween: { title: 'The Haunted Ledger', subtitle: 'A spooky report on the resume chatbot.', avatar: '🎃', ok: 'No ghosts in the machine', bad: 'Something wicked this way comes' },
+    christmas: { title: "Santa's Workshop Report", subtitle: 'How the resume chatbot has been this year.', avatar: '🎄', ok: 'Nice list: all systems merry', bad: "Naughty list: something's broken" },
 };
 
 const COMPONENTS = { api: 'Web API', qdrant: 'Search index', ollama: 'Language model' };

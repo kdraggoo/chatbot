@@ -8,7 +8,7 @@
 		<script>
 			// Apply the saved theme before first paint (app.js handles the picker)
 			(function () {
-				var themes = ['retro', 'ios', 'android', 'contrast', 'ironman', 'american', 'canadian', 'synthwave'], theme = null;
+				var themes = ['retro', 'ios', 'android', 'contrast', 'ironman', 'american', 'canadian', 'synthwave', 'halloween', 'christmas'], theme = null;
 				try { theme = new URLSearchParams(location.search).get('theme'); } catch (e) {}
 				if (themes.indexOf(theme) < 0) {
 					try { theme = localStorage.getItem('chatbot-theme'); } catch (e) {}
@@ -27,6 +27,8 @@
 		<link rel="stylesheet" href="./themes/american.css?v=8">
 		<link rel="stylesheet" href="./themes/canadian.css?v=8">
 		<link rel="stylesheet" href="./themes/synthwave.css?v=8">
+		<link rel="stylesheet" href="./themes/halloween.css?v=10">
+		<link rel="stylesheet" href="./themes/christmas.css?v=2">
 	</head>
 	<body>
 		<div class="header">
@@ -47,6 +49,8 @@
 					<option value="american">American</option>
 					<option value="canadian">Canadian</option>
 					<option value="synthwave">Synthwave</option>
+					<option value="halloween">Halloween</option>
+					<option value="christmas">Christmas</option>
 				</select>
 			</div>
 		</div>
@@ -55,6 +59,6 @@
 			<input id="q" placeholder="iMessage" autocomplete="off">
 			<button id="go" aria-label="Send">&#8593;</button>
 		</div>
-		<script src="./app.js?v=4"></script>
+		<script src="./app.js?v=6"></script>
 	</body>
 </html>

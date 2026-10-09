@@ -1,0 +1,301 @@
+/* /srv/chatbot/web/themes/christmas.css: snowy evergreen night, Santa-red header with fur trim, gold accents */
+
+[data-theme="christmas"] {
+	--xm-night: #06180f;
+	--xm-pine: #0d3320;
+	--xm-red: #c8102e;
+	--xm-red-dark: #7a0012;
+	--xm-gold: #f2c14e;
+	--xm-snow: #f8fbff;
+	--xm-text: #f3f7f2;
+	--xm-muted: #b9cfc2;
+	--xm-error: #ff8a8a;
+	color-scheme: dark;
+}
+
+[data-theme="christmas"] body {
+	font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+	background: linear-gradient(180deg, var(--xm-pine) 0%, var(--xm-night) 75%);
+	background-attachment: fixed;
+	color: var(--xm-text);
+}
+
+/* Falling snow: scattered flakes in tiles of uneven sizes, so no grid shows */
+[data-theme="christmas"] body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	background-image:
+		radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.9) 0 2px, transparent 2.5px),
+		radial-gradient(circle at 70% 80%, rgba(255, 255, 255, 0.75) 0 1.5px, transparent 2px),
+		radial-gradient(circle at 55% 12%, rgba(255, 255, 255, 0.85) 0 2.5px, transparent 3px),
+		radial-gradient(circle at 85% 55%, rgba(255, 255, 255, 0.6) 0 1px, transparent 1.5px),
+		radial-gradient(circle at 12% 72%, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 2px),
+		radial-gradient(circle at 38% 46%, rgba(255, 255, 255, 0.5) 0 1px, transparent 1.5px),
+		radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.5px);
+	background-size: 233px 271px, 197px 163px, 311px 347px, 143px 157px, 179px 211px, 101px 127px, 127px 89px;
+	pointer-events: none;
+	animation: xmSnow 20s linear infinite;
+}
+
+/* Each layer moves a whole number of tiles, so the loop is seamless; bigger flakes fall faster */
+@keyframes xmSnow {
+	from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+	to { background-position: 0 1084px, 0 489px, 0 1041px, 0 314px, 0 422px, 0 254px, 0 178px; }
+}
+
+/* Santa-red header with a white fur trim */
+[data-theme="christmas"] .header {
+	position: relative;
+	z-index: 1;
+	align-items: center;
+	padding: 0.9rem 1rem;
+	background: linear-gradient(180deg, #d81a38 0%, var(--xm-red) 45%, var(--xm-red-dark) 100%);
+	border-bottom: 7px solid var(--xm-snow);
+	box-shadow: 0 3px 0 #dfe6ee, 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="christmas"] .header-main {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: 0.8rem;
+	align-items: center;
+}
+
+/* Twinkling tree */
+[data-theme="christmas"] .avatar {
+	display: block;
+	grid-row: span 2;
+	font-size: 2.2rem;
+	line-height: 1;
+	filter: drop-shadow(0 0 6px rgba(242, 193, 78, 0.8));
+	animation: xmTwinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes xmTwinkle {
+	0%, 100% { filter: drop-shadow(0 0 6px rgba(242, 193, 78, 0.8)); }
+	50% { filter: drop-shadow(0 0 12px rgba(255, 230, 150, 1)); }
+}
+
+[data-theme="christmas"] .header h1 {
+	font-size: 1.55rem;
+	font-weight: 700;
+	letter-spacing: 1px;
+	color: var(--xm-snow);
+	text-shadow: 0 2px 0 var(--xm-red-dark), 0 0 10px rgba(242, 193, 78, 0.45);
+}
+
+[data-theme="christmas"] .header p {
+	font-size: 0.85rem;
+	font-style: italic;
+	color: #ffe6a8;
+}
+
+[data-theme="christmas"] .theme-picker label {
+	font-size: 0.75rem;
+	font-style: italic;
+	color: #ffe6a8;
+}
+
+[data-theme="christmas"] #theme {
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 0.3rem 0.5rem;
+	color: var(--xm-text);
+	background: var(--xm-red-dark);
+	border: 1px solid var(--xm-gold);
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+[data-theme="christmas"] .header .stats-link {
+	color: var(--xm-snow);
+	text-decoration: underline;
+	text-decoration-color: var(--xm-gold);
+}
+
+[data-theme="christmas"] #chatContainer {
+	position: relative;
+	padding: 1.25rem 1rem;
+	gap: 1.1rem;
+	background: transparent;
+}
+
+[data-theme="christmas"] #chatContainer > * {
+	position: relative;
+	z-index: 1;
+}
+
+[data-theme="christmas"] #chatContainer::-webkit-scrollbar {
+	width: 6px;
+}
+
+[data-theme="christmas"] #chatContainer::-webkit-scrollbar-thumb {
+	background: var(--xm-gold);
+	border-radius: 3px;
+}
+
+[data-theme="christmas"] .message {
+	animation: xmIn 0.35s ease-out;
+}
+
+@keyframes xmIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+[data-theme="christmas"] .message-label {
+	margin-bottom: 0.3rem;
+	font-size: 0.75rem;
+	font-style: italic;
+	letter-spacing: 1px;
+}
+
+[data-theme="christmas"] .message.user .message-label {
+	color: #ffb3bf;
+}
+
+[data-theme="christmas"] .message.bot .message-label {
+	color: var(--xm-gold);
+}
+
+[data-theme="christmas"] .message-content {
+	padding: 0.75rem 1rem;
+	line-height: 1.5;
+	border-radius: 14px;
+}
+
+[data-theme="christmas"] .message.user .message-content {
+	color: #ffffff;
+	background: linear-gradient(160deg, #d81a38, var(--xm-red) 55%, var(--xm-red-dark));
+	border-bottom-right-radius: 4px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="christmas"] .message.bot .message-content {
+	color: var(--xm-text);
+	background: rgba(13, 51, 32, 0.92);
+	border: 1px solid var(--xm-gold);
+	border-bottom-left-radius: 4px;
+	box-shadow: 0 0 12px rgba(242, 193, 78, 0.25);
+}
+
+[data-theme="christmas"] .message.typing .message-content {
+	font-style: italic;
+	color: var(--xm-muted);
+}
+
+[data-theme="christmas"] .typing-indicator {
+	display: inline-block;
+}
+
+[data-theme="christmas"] .message.error .message-content {
+	color: #ffe0e0;
+	border-color: var(--xm-error);
+	box-shadow: 0 0 12px rgba(255, 138, 138, 0.45);
+}
+
+[data-theme="christmas"] .input-area {
+	position: relative;
+	z-index: 1;
+	padding: 0.9rem 1rem;
+	padding-bottom: max(0.9rem, env(safe-area-inset-bottom));
+	background: rgba(6, 24, 15, 0.95);
+	border-top: 3px solid var(--xm-snow);
+}
+
+[data-theme="christmas"] #q {
+	padding: 0.75rem 0.9rem;
+	font: inherit;
+	font-size: 1rem;
+	color: var(--xm-text);
+	background: rgba(13, 51, 32, 0.95);
+	border: 1px solid #2f6b4a;
+	border-radius: 10px;
+}
+
+[data-theme="christmas"] #q:focus {
+	border-color: var(--xm-gold);
+	box-shadow: 0 0 10px rgba(242, 193, 78, 0.45);
+}
+
+[data-theme="christmas"] #q::placeholder {
+	color: #87a796;
+	font-style: italic;
+}
+
+[data-theme="christmas"] #go {
+	padding: 0.75rem 1.4rem;
+	font: inherit;
+	font-size: 1rem;
+	font-weight: 700;
+	color: #ffffff;
+	background: linear-gradient(180deg, #d81a38, var(--xm-red-dark));
+	border: 2px solid var(--xm-gold);
+	border-radius: 10px;
+	box-shadow: 0 0 10px rgba(242, 193, 78, 0.4);
+	transition: box-shadow 0.2s, filter 0.2s;
+}
+
+[data-theme="christmas"] #go:hover:not(:disabled) {
+	filter: brightness(1.1);
+	box-shadow: 0 0 18px rgba(242, 193, 78, 0.7);
+}
+
+[data-theme="christmas"] #go:disabled {
+	filter: grayscale(0.6) brightness(0.75);
+	box-shadow: none;
+}
+
+[data-theme="christmas"] .empty-state {
+	align-self: center;
+	max-width: 32rem;
+	margin-top: 3rem;
+	font-size: 1.05rem;
+	font-style: italic;
+	line-height: 1.5;
+	text-align: center;
+	color: var(--xm-muted);
+	white-space: pre-line;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	[data-theme="christmas"] body::before,
+	[data-theme="christmas"] .avatar,
+	[data-theme="christmas"] .message {
+		animation: none;
+	}
+}
+
+@media (max-width: 520px) {
+	[data-theme="christmas"] .header h1 {
+		font-size: 1.2rem;
+		letter-spacing: 0;
+	}
+}
+
+/* Stats page (stats/) */
+[data-theme="christmas"] {
+	--dash-panel: rgba(13, 51, 32, 0.96);
+	--dash-border: rgba(242, 193, 78, 0.65);
+	--dash-text: var(--xm-text);
+	--dash-muted: var(--xm-muted);
+	--dash-accent: var(--xm-gold);
+	--dash-on-accent: #2a1a00;
+	--dash-good: #6fdc8c;
+	--dash-bad: var(--xm-error);
+	--dash-on-status: #06180f;
+	--dash-grid: rgba(242, 193, 78, 0.18);
+	--dash-radius: 12px;
+	--dash-shadow: 0 0 12px rgba(242, 193, 78, 0.18);
+	--dash-heading-case: uppercase;
+	--dash-heading-spacing: 2px;
+	--dash-tip-bg: #06180f;
+	--dash-tip-text: var(--xm-text);
+}

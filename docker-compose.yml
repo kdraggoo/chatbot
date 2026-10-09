@@ -10,7 +10,7 @@ x-common-env: &common_env
 
 services:
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.16.2  # pinned: upgrades can migrate storage; re-run evals after changing
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
@@ -24,7 +24,7 @@ services:
       start_period: 10s
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.13.1  # pinned: upgrades can change generation; re-run evals after changing
     restart: unless-stopped
     environment:
       - OLLAMA_KEEP_ALIVE=24h

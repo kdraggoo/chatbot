@@ -81,7 +81,9 @@ def is_near_duplicate(words: set, chosen: List[set]) -> bool:
 # Context chunks are numbered [1], [2], ... and the model cites them ("According to
 # section [1], ..."), but visitors never see the sources, so the markers and the
 # phrases that point at them are removed from answers.
-_CITE = r"\[\d+(?:\s*[,\-–]\s*\d+)*\]"
+# The model also echoes the label each chunk starts with ("[Kevin - Career | Summary]"),
+# so any bracketed text counts, except a Markdown link "[text](url)".
+_CITE = r"(?:\[\d+(?:\s*[,\-–]\s*\d+)*\]|\[[^\[\]\n\d][^\[\]\n]{0,119}\](?!\())"
 _CITES = rf"{_CITE}(?:(?:\s*,)?\s*(?:and|&)?\s*{_CITE})*"  # "[1], [2], and [4]"
 _SECTIONS = r"(?:the\s+)?(?:context\s+)?(?:provided\s+)?(?:in\s+)?(?:(?:sections?|chunks?|sources?)\s*)?"
 _CITATION_RULES = [
@@ -96,6 +98,8 @@ _CITATION_RULES = [
     # "According to section [1], ", "in sections [1] and [2] of the context", "as mentioned in section [2]"
     (re.compile(rf"[ \t]*\b(?:as\s+(?:stated|mentioned|seen|noted|described|listed)\s+in|according\s+to|based\s+on|in|from)\s+"
                 rf"{_SECTIONS}{_CITES}(?:\s+of\s+(?:the|his)\s+[\w ]+?(?=[,.;:\n]))?\s*,?[ \t]*", re.I), " \0"),
+    # "[Kevin - Career | Summary], Kevin has run" (a marker opening a sentence)
+    (re.compile(rf"(^[ \t]*(?:(?:[-*]|\d+\.)[ \t]+)?|(?<=[.!?]\s))[ \t]*{_CITES}\s*[,:]?[ \t]*", re.M), "\\1\0"),
     (re.compile(rf"[ \t]*{_CITES}"), ""),  # any marker left
 ]
 # A space before punctuation or at a line edge, left where a phrase was removed

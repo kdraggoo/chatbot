@@ -163,6 +163,50 @@ function applyTheme(name, save = true) {
 
 themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
 
+// Session details sent with each question for the admin dashboard (no IP is logged).
+// The visitor ID persists in this browser; the session ID lasts until the tab closes.
+function randomId() {
+    if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+}
+
+function storedId(storage, key) {
+    try {
+        let id = storage.getItem(key);
+        if (!id) {
+            id = randomId();
+            storage.setItem(key, id);
+        }
+        return id;
+    } catch (e) {
+        return null;  // Storage blocked (private mode etc.); the question is still answered
+    }
+}
+
+const visitorId = storedId(window.localStorage, 'chatbot-visitor');
+const sessionId = storedId(window.sessionStorage, 'chatbot-session');
+// Where the visitor came from; the server keeps only the host
+const landingReferrer = document.referrer && !document.referrer.startsWith(location.origin) ? document.referrer : '';
+
+function clientInfo() {
+    let timezone = null;
+    try {
+        timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch (e) {
+        // Older browsers without Intl time zones
+    }
+    return {
+        visitor_id: visitorId,
+        session_id: sessionId,
+        timezone,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        theme: currentTheme,
+        referrer: landingReferrer || null,
+    };
+}
+
 let typingIndicatorInterval = null;
 
 function addMessage(content, sender, isTyping = false, isError = false) {
@@ -276,7 +320,7 @@ document.getElementById('go').onclick = async () => {
         const res = await fetch('/chatbot/api/chat?stream=true', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({query: query})
+            body: JSON.stringify({query: query, client: clientInfo()})
         });
         
         if (!res.ok) {

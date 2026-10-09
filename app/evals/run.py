@@ -47,15 +47,8 @@ import yaml
 EVALS_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = EVALS_DIR / "results"
 
-# Phrases that mean the bot declined; matched case-insensitively against refuse cases
-REFUSAL_MARKERS = [
-    "don't have", "do not have", "doesn't have", "does not have",
-    "no information", "not mention", "no mention", "not provided", "not specified",
-    "not available", "not include", "not contain", "isn't mentioned", "is not mentioned",
-    "not found", "no record", "not listed", "unable to", "cannot", "can't",
-    "couldn't", "could not", "not able to", "does not provide", "doesn't provide",
-    "insufficient", "not enough information", "no relevant",
-]
+# Phrases that mean the bot declined; shared with the dashboard's answer flags
+from rag.refusal import REFUSAL_MARKERS  # noqa: E402
 
 
 def load_cases(path: Path, tags: list[str], ids: list[str]) -> list[dict]:

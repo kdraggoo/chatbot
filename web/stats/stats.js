@@ -108,7 +108,7 @@ function percent(part, whole) {
         return null;
     }
     const p = (part / whole) * 100;
-    return p >= 99 && p < 100 ? Math.floor(p * 10) / 10 : Math.floor(p);
+    return p >= 99.5 && p < 100 ? Math.floor(p * 10) / 10 : Math.round(p);
 }
 
 // ---- Sections ----

@@ -42,7 +42,12 @@ function svg(tag, attrs = {}) {
 }
 
 const fmtInt = (n) => (n ?? 0).toLocaleString();
-const fmtPct = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` : '—');
+// Whole percent, except near 100 where one decimal keeps a rare failure from reading as 100%
+function fmtPct(part, whole) {
+    if (!whole) return '—';
+    const p = (part / whole) * 100;
+    return p >= 99.5 && p < 100 ? `${Math.floor(p * 10) / 10}%` : `${Math.round(p)}%`;
+}
 function fmtMs(ms) {
     if (ms == null) return '—';
     return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`;
@@ -126,6 +131,8 @@ function render(s) {
         tile('95th percentile', fmtMs(u.p95_ms), 'slowest 5% take longer'),
         tile('No relevant context', fmtPct(u.no_context, u.context_known), `${fmtInt(u.no_context)} of ${fmtInt(u.context_known)} answered`),
         tile('Errors', fmtInt(u.errors), `${fmtPct(u.errors, u.questions)} · ${fmtInt(u.aborted)} abandoned`),
+        tile('Declined', fmtInt(u.declined), u.answers_logged ? `of ${fmtInt(u.answers_logged)} logged answers` : 'answers logged from Oct 9 on'),
+        tile('Citation leaks', fmtInt(u.citation_leaks), 'answers with a leftover [marker]'),
     );
 
     // Chart + table view
@@ -140,16 +147,23 @@ function render(s) {
         'No data.'));
 
     // Recent questions
+    const flagText = { declined: 'declined', citation: '⚠ citation left in', empty: '⚠ empty answer' };
     const statusCell = (r) => {
-        if (r.status === 'ok') return [r.chunks_used === 0 ? '✓ no context' : '✓ answered', 'status-ok'];
+        const flags = (r.flags || []).map((f) => flagText[f]).filter(Boolean);
+        if (r.status === 'ok') {
+            const base = r.chunks_used === 0 ? '✓ no context' : '✓ answered';
+            const warn = (r.flags || []).some((f) => f !== 'declined');
+            return [[base, ...flags].join(' · '), warn ? 'status-error' : 'status-ok'];
+        }
         if (r.status === 'error') return ['✗ error', 'status-error'];
         return ['– abandoned', 'status-aborted'];
     };
     $('recent').replaceChildren(table(
-        [['When'], ['Question'], ['Result'], ['Time', 'num'], ['Chunks', 'num'], ['Top score', 'num']],
+        [['When'], ['Question'], ['Visitor'], ['Result'], ['Time', 'num'], ['Chunks', 'num'], ['Top score', 'num']],
         u.recent.map((r) => [
             [fmtWhen(r.ts), 'when'],
-            [r.query, r.source === 'nginx' ? 'q muted' : 'q'],
+            [questionCell(r), r.source === 'nginx' ? 'q muted' : 'q'],
+            [visitorCell(r), 'who'],
             statusCell(r),
             [fmtMs(r.duration_ms), 'num'],
             [r.chunks_used ?? '—', 'num'],
@@ -162,6 +176,7 @@ function render(s) {
         u.top_questions.map((q) => [[q.query, 'q'], [fmtInt(q.count), 'num']]),
         'No questions in this range yet.'));
 
+    renderVisitors(s.visitors, s.tracking_since);
     renderMonitoring(s.monitoring);
 
     // Settings
@@ -193,6 +208,53 @@ function render(s) {
             ]),
             'The collection is empty.'));
     }
+}
+
+// The question, expanding to the answer as the visitor saw it and the passages it drew on
+function questionCell(r) {
+    if (r.answer == null && !r.passages) return r.query;
+    const body = el('div', { class: 'answer' });
+    body.append(el('p', { class: 'answer-text' }, r.answer ?? '(no answer text)'));
+    if (r.passages && r.passages.length) {
+        body.append(el('ol', { class: 'passages' },
+            ...r.passages.map((p) => el('li', {}, `${p.label} · ${p.score != null ? p.score.toFixed(3) : '—'}`))));
+    } else if (r.passages) {
+        body.append(el('p', { class: 'empty' }, 'No passages passed the similarity threshold.'));
+    }
+    return el('details', {}, el('summary', {}, r.query), body);
+}
+
+// "Safari · macOS · America/Detroit · #3f2b9c", the tag being the visitor ID's start, so
+// one visitor's questions can be picked out
+function visitorCell(r) {
+    if (!r.browser) return '—';
+    const parts = [r.browser, r.os, r.timezone, r.referrer ? `from ${r.referrer}` : null];
+    if (r.visitor_id) parts.push(`#${r.visitor_id.slice(0, 6)}`);
+    return parts.filter(Boolean).join(' · ');
+}
+
+const BREAKDOWNS = [
+    ['device', 'Device'], ['browser', 'Browser'], ['os', 'Operating system'], ['referrer', 'Came from'],
+    ['timezone', 'Time zone'], ['language', 'Language'], ['theme', 'Theme'], ['screen', 'Screen'],
+];
+
+function renderVisitors(v, since) {
+    const tile = (label, value, note) =>
+        el('div', { class: 'tile' }, el('div', { class: 'label' }, label), el('div', { class: 'value' }, value), note ? el('div', { class: 'note' }, note) : null);
+    $('visitorsTitle').textContent = `Visitors · last ${days} days`;
+    $('visitorsSub').textContent = since
+        ? `Session details are logged from ${fmtWhen(Date.parse(since) / 1000)} on (no IP addresses). Earlier questions are not counted here. Breakdowns count visitors, not questions.`
+        : 'No questions with session details yet. They are logged from the chat page from now on (no IP addresses).';
+    $('visitorTiles').replaceChildren(
+        tile('Visitors', fmtInt(v.visitors), 'one per browser'),
+        tile('Sessions', fmtInt(v.sessions), 'one per browser tab visit'),
+        tile('Returning', fmtInt(v.returning), `${fmtPct(v.returning, v.visitors)} came back in another session`),
+        tile('Questions per session', v.sessions ? (v.questions / v.sessions).toFixed(1) : '—', `${fmtInt(v.questions)} question${v.questions === 1 ? '' : 's'}`),
+    );
+    $('breakdowns').replaceChildren(...BREAKDOWNS.map(([key, label]) => el('div', {},
+        table([[label], ['Visitors', 'num']],
+            v.breakdowns[key].map((d) => [[d.value], [fmtInt(d.visitors), 'num']]),
+            `${label}: no data yet.`))));
 }
 
 function niceMax(v) {

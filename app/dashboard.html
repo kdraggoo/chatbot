@@ -150,6 +150,11 @@
 			.status-aborted { color: var(--muted); white-space: nowrap; }
 			.empty { color: var(--muted); padding: 0.5rem 0; }
 
+			.breakdowns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem 1.25rem; margin-top: 1rem; }
+			td.q details summary { cursor: pointer; }
+			td.q .answer { margin: 0.5rem 0 0.25rem; padding: 0.6rem 0.75rem; border-left: 2px solid var(--muted); white-space: pre-wrap; font-size: 0.8rem; }
+			td.q .passages { margin: 0.5rem 0 0 1.2rem; font-size: 0.72rem; color: var(--muted); white-space: normal; }
+			td.who { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
 			.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1rem; }
 
 			dl.config { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; font-size: 0.82rem; }
@@ -212,6 +217,13 @@
 					</section>
 
 					<section>
+						<h2 id="visitorsTitle">Visitors</h2>
+						<p class="sub" id="visitorsSub"></p>
+						<div class="tiles" id="visitorTiles" style="margin-top: 0.75rem;"></div>
+						<div class="breakdowns" id="breakdowns"></div>
+					</section>
+
+					<section>
 						<h2>Monitoring</h2>
 						<p class="sub">An hourly probe (chatbot-probe.timer) asks a known question through the full pipeline. Probe runs are not counted in usage. Bars show the median response time per day; red means at least one run failed.</p>
 						<div class="tiles" id="probeTiles" style="margin-top: 0.75rem;"></div>
@@ -241,6 +253,6 @@
 			</div>
 		</main>
 
-		<script src="/chatbot/dashboard.js"></script>
+		<script src="/chatbot/dashboard.js?v=5"></script>
 	</body>
 </html>

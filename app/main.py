@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pathlib import Path
+from urllib.parse import urlparse
 from pydantic import BaseModel, Field, field_validator
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, FilterSelector, Filter, FieldCondition, MatchValue
@@ -22,6 +23,7 @@ from typing import List, Optional
 import httpx
 import numpy as np  # installed with qdrant-client
 from rag.ingest import chunk_text
+from rag.refusal import is_refusal
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -250,6 +252,82 @@ query_analytics = defaultdict(int)
 
 
 
+# Session details logged with each visitor question (no IP: nginx sees every visitor as
+# the Docker gateway). Browser, OS and device are parsed here so the dashboard can group
+# them; the raw User-Agent is kept so they can be re-parsed later.
+CLIENT_COLUMNS = ("visitor_id", "session_id", "user_agent", "browser", "os", "device",
+                  "language", "timezone", "screen", "theme", "referrer")
+# The answer as the visitor saw it (after strip_citations) and the passages it drew on,
+# as JSON [{"label": "Kevin - Career | Infor", "score": 0.6}], added 2026-10-09
+ANSWER_COLUMNS = ("answer", "passages")
+MAX_LOGGED_ANSWER = 8000
+_BOT_UA = re.compile(r"bot|crawl|spider|slurp|curl|wget|python|httpx|go-http|java/|headless|lighthouse", re.I)
+_BROWSERS = [  # first match wins; in-app browsers before the engines they wrap
+    (r"LinkedInApp", "LinkedIn app"), (r"FBAN|FBAV", "Facebook app"), (r"Instagram", "Instagram app"),
+    (r"Edg(?:e|A|iOS)?/", "Edge"), (r"OPR/|Opera", "Opera"), (r"SamsungBrowser", "Samsung Internet"),
+    (r"Firefox/|FxiOS", "Firefox"), (r"Chrome/|CriOS|Chromium", "Chrome"), (r"Version/[\d.]+.*Safari/", "Safari"),
+]
+_OSES = [
+    (r"iPhone|iPod", "iOS"), (r"iPad", "iPadOS"), (r"Android", "Android"), (r"CrOS", "ChromeOS"),
+    (r"Windows NT", "Windows"), (r"Macintosh|Mac OS X", "macOS"), (r"Linux", "Linux"),
+]
+_ID_RE = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+_TZ_RE = re.compile(r"^[A-Za-z_]+(?:/[A-Za-z0-9_+-]+){0,2}$|^UTC$")
+_SCREEN_RE = re.compile(r"^\d{2,5}x\d{2,5}$")
+_LANG_RE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$")
+
+
+def parse_user_agent(ua: str) -> tuple:
+    """(browser, os, device) from a User-Agent string; 'Other' when unrecognized."""
+    if not ua:
+        return None, None, None
+    if _BOT_UA.search(ua):
+        return "Bot or script", "Other", "bot"
+    browser = next((name for rx, name in _BROWSERS if re.search(rx, ua)), "Other")
+    os_name = next((name for rx, name in _OSES if re.search(rx, ua)), "Other")
+    if os_name == "iPadOS" or "Tablet" in ua or (os_name == "Android" and "Mobile" not in ua):
+        device = "tablet"
+    elif os_name in ("iOS", "Android") or "Mobi" in ua:
+        device = "mobile"
+    else:
+        device = "desktop"
+    return browser, os_name, device
+
+
+def client_details(request: Request, client: Optional[dict]) -> dict:
+    """Session fields for the chat log. Anything malformed is dropped, never rejected."""
+    client = client if isinstance(client, dict) else {}
+
+    def pick(key: str, pattern: re.Pattern, limit: int) -> Optional[str]:
+        value = client.get(key)
+        if isinstance(value, str) and len(value) <= limit and pattern.match(value):
+            return value
+        return None
+
+    ua = request.headers.get("user-agent", "")[:400]
+    browser, os_name, device = parse_user_agent(ua)
+    lang = request.headers.get("accept-language", "").split(",")[0].split(";")[0].strip()
+    referrer = client.get("referrer")
+    host = urlparse(referrer).hostname if isinstance(referrer, str) and referrer.startswith("http") else None
+    if host and host.startswith("www."):
+        host = host[4:]
+    theme = client.get("theme")
+    return {
+        "visitor_id": pick("visitor_id", _ID_RE, 64),
+        "session_id": pick("session_id", _ID_RE, 64),
+        "user_agent": ua or None,
+        "browser": browser,
+        "os": os_name,
+        "device": device,
+        "language": lang if _LANG_RE.match(lang) else None,
+        "timezone": pick("timezone", _TZ_RE, 64),
+        "screen": pick("screen", _SCREEN_RE, 11),
+        "theme": theme if isinstance(theme, str) and re.fullmatch(r"[a-z]{2,20}", theme) else None,
+        # Host only: a full referrer URL can carry someone's search terms or tokens
+        "referrer": host[:255] if host else None,
+    }
+
+
 def init_stats_db():
     """Create the chat log table used by the dashboard."""
     Path(STATS_DB).parent.mkdir(parents=True, exist_ok=True)
@@ -268,24 +346,34 @@ def init_stats_db():
                 source TEXT NOT NULL DEFAULT 'chat'  -- chat | probe (monitoring) | nginx (backfilled)
             )"""
         )
-        if "source" not in {row[1] for row in conn.execute("PRAGMA table_info(chat_log)")}:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(chat_log)")}
+        if "source" not in columns:
             conn.execute("ALTER TABLE chat_log ADD COLUMN source TEXT NOT NULL DEFAULT 'chat'")
+        for column in CLIENT_COLUMNS + ANSWER_COLUMNS:  # added 2026-10-09; NULL on older rows
+            if column not in columns:
+                conn.execute(f"ALTER TABLE chat_log ADD COLUMN {column} TEXT")
         conn.execute("CREATE INDEX IF NOT EXISTS chat_log_ts ON chat_log(ts)")
     logger.info(f"Chat stats DB ready at {STATS_DB}")
 
 
 def record_chat(query: str, stream: bool, status: str, started_at: float, started_mono: float,
-                sources: Optional[List[dict]] = None, answer_chars: int = 0, source: str = "chat"):
+                sources: Optional[List[dict]] = None, answer: str = "", source: str = "chat",
+                client: Optional[dict] = None):
     """Log one /chat request for the dashboard. Never lets a logging failure break chat."""
     try:
         duration_ms = int((time.monotonic() - started_mono) * 1000)
         top_score = max((s["score"] for s in sources), default=None) if sources else None
         with closing(sqlite3.connect(STATS_DB, timeout=5)) as conn, conn:
+            client = client or {}
+            passages = None if sources is None else json.dumps(
+                [{"label": s.get("label") or s.get("title"), "score": s.get("score")} for s in sources])
             conn.execute(
-                "INSERT INTO chat_log (ts, query, stream, status, duration_ms, chunks_used, top_score, answer_chars, source)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO chat_log (ts, query, stream, status, duration_ms, chunks_used, top_score, answer_chars, source, "
+                + ", ".join(CLIENT_COLUMNS + ANSWER_COLUMNS) + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?"
+                + ", ?" * len(CLIENT_COLUMNS + ANSWER_COLUMNS) + ")",
                 (started_at, query[:500], int(stream), status, duration_ms,
-                 None if sources is None else len(sources), top_score, answer_chars, source),
+                 None if sources is None else len(sources), top_score, len(answer), source,
+                 *(client.get(c) for c in CLIENT_COLUMNS), answer[:MAX_LOGGED_ANSWER] or None, passages),
             )
             conn.execute("DELETE FROM chat_log WHERE ts < ?", (time.time() - STATS_RETENTION_DAYS * 86400,))
     except Exception as e:
@@ -365,6 +453,9 @@ def is_probe_request(request: Request) -> bool:
 
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=MAX_QUERY_LENGTH, description="User query string")
+    # Session details from the chat page (visitor/session IDs, time zone, screen, theme,
+    # referrer); sanitized by client_details, so bad values are dropped, not rejected
+    client: Optional[dict] = None
     
     @field_validator('query')
     @classmethod
@@ -610,9 +701,11 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
             contexts.append(f"[{chunk_num}] {text}")
             
             # Store source info for citations
+            label = re.match(r"\[([^\]\n]{1,200})\]", text)  # "[Kevin - Career | Infor]" chunk header
             sources.append({
                 "chunk_id": chunk_num,
                 "title": payload.get("title", "Unknown"),
+                "label": label.group(1) if label else payload.get("title", "Unknown"),
                 "source_path": payload.get("source_path", "Unknown"),
                 "score": round(score, 3)
             })
@@ -751,6 +844,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
     query = req.query
     started_at, started_mono = time.time(), time.monotonic()
     source = "probe" if is_probe_request(request) else "chat"
+    client = client_details(request, req.client)
 
     # Query analytics logging
     query_analytics[query[:50]] += 1
@@ -761,7 +855,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
     try:
         prompt, context_text, sources = await _prepare_rag_context(query)
     except HTTPException:
-        record_chat(query, stream, "error", started_at, started_mono, source=source)
+        record_chat(query, stream, "error", started_at, started_mono, source=source, client=client)
         raise
     
     # Streaming response
@@ -775,13 +869,13 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
         
         async def generate():
             # "aborted" sticks if the client disconnects mid-stream
-            status, errored, answer_chars = "aborted", False, 0
+            status, errored, pieces = "aborted", False, []
             try:
                 async for token in _stream_ollama_response(prompt, timeout=timeout_seconds):
                     if token.startswith("[ERROR"):
                         errored = True
                     else:
-                        answer_chars += len(token)
+                        pieces.append(token)  # already citation-stripped, as the visitor sees it
                     # Send token as JSON with newline for SSE-like behavior
                     yield f"data: {json.dumps({'token': token})}\n\n"
                 # Send sources and final marker
@@ -789,7 +883,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
                 yield f"data: {json.dumps({'done': True})}\n\n"
                 status = "error" if errored else "ok"
             finally:
-                record_chat(query, True, status, started_at, started_mono, sources, answer_chars, source)
+                record_chat(query, True, status, started_at, started_mono, sources, "".join(pieces).strip(), source, client)
         
         return StreamingResponse(
             generate(),
@@ -832,7 +926,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
         logger.error(f"Ollama generation error: {e}")
         raise HTTPException(status_code=502, detail=f"Ollama error: {e}")
     finally:
-        record_chat(query, False, status, started_at, started_mono, sources, len(answer), source)
+        record_chat(query, False, status, started_at, started_mono, sources, answer, source, client)
 
     # Return answer with sources for transparency
     return {
@@ -1139,6 +1233,53 @@ def _percentile(values: List[int], pct: float) -> Optional[int]:
     return values[min(len(values) - 1, int(round(pct / 100 * (len(values) - 1))))]
 
 
+# Leftover chunk labels or numbered markers that strip_citations missed
+_LEFTOVER_CITE = re.compile(r"\[[^\]\n]{1,120}\](?!\()|\b(?:section|chunk|context)\s*\[\d", re.I)
+
+
+def answer_flags(row: dict) -> List[str]:
+    """Review hints for a logged answer: declined, citation (a marker got through), empty."""
+    answer = row.get("answer")
+    if answer is None:
+        return ["empty"] if row["status"] == "ok" and row.get("passages") is not None else []
+    flags = []
+    if is_refusal(answer):
+        flags.append("declined")
+    if _LEFTOVER_CITE.search(answer):
+        flags.append("citation")
+    return flags
+
+
+def _visitor_stats(rows: List[dict]) -> dict:
+    """Visitor and session counts plus breakdowns, for rows logged with session details.
+
+    Breakdowns count visitors, not questions, so one chatty visitor doesn't swamp them;
+    a question without a visitor ID (an API caller) counts as its own visitor.
+    """
+    def who(i: int, r: dict) -> str:
+        return r["visitor_id"] or f"row-{i}"
+
+    visitor_sessions = defaultdict(set)
+    for i, r in enumerate(rows):
+        visitor_sessions[who(i, r)].add(r["session_id"] or f"row-{i}")
+    sessions = set().union(*visitor_sessions.values()) if visitor_sessions else set()
+
+    breakdowns = {}
+    for field in ("device", "browser", "os", "referrer", "timezone", "language", "theme", "screen"):
+        seen = defaultdict(set)
+        for i, r in enumerate(rows):
+            seen[r[field] or ("direct" if field == "referrer" else "unknown")].add(who(i, r))
+        breakdowns[field] = sorted(({"value": v, "visitors": len(ids)} for v, ids in seen.items()),
+                                   key=lambda d: (-d["visitors"], str(d["value"])))[:12]
+    return {
+        "questions": len(rows),
+        "visitors": len(visitor_sessions),
+        "sessions": len(sessions),
+        "returning": sum(len(s) > 1 for s in visitor_sessions.values()),
+        "breakdowns": breakdowns,
+    }
+
+
 @app.get("/admin/stats")
 async def chat_stats(
     days: int = Query(30, ge=1, le=STATS_RETENTION_DAYS),
@@ -1149,14 +1290,19 @@ async def chat_stats(
     with closing(sqlite3.connect(STATS_DB, timeout=5)) as conn:
         conn.row_factory = sqlite3.Row
         all_rows = [dict(r) for r in conn.execute(
-            "SELECT ts, query, stream, status, duration_ms, chunks_used, top_score, source"
-            " FROM chat_log WHERE ts >= ? ORDER BY ts DESC", (since,))]
+            "SELECT ts, query, stream, status, duration_ms, chunks_used, top_score, source, "
+            + ", ".join([c for c in CLIENT_COLUMNS if c != "user_agent"] + list(ANSWER_COLUMNS))
+            + " FROM chat_log WHERE ts >= ? ORDER BY ts DESC", (since,))]
         # Backfilled nginx rows have no question text, so they stay out of the ranking
         top_questions = [dict(r) for r in conn.execute(
             "SELECT lower(query) AS query, count(*) AS count FROM chat_log WHERE ts >= ? AND source = 'chat'"
             " GROUP BY lower(query) ORDER BY count DESC, max(ts) DESC LIMIT 10", (since,))]
         first_ts = conn.execute("SELECT min(ts) FROM chat_log WHERE source = 'chat'").fetchone()[0]
         backfill_ts = conn.execute("SELECT min(ts) FROM chat_log WHERE source = 'nginx'").fetchone()[0]
+        tracking_ts = conn.execute("SELECT min(ts) FROM chat_log WHERE source = 'chat' AND browser IS NOT NULL").fetchone()[0]
+    for r in all_rows:
+        r["passages"] = json.loads(r["passages"]) if r["passages"] else None
+        r["flags"] = answer_flags(r)
     rows = [r for r in all_rows if r["source"] != "probe"]
     probes = [r for r in all_rows if r["source"] == "probe"]
 
@@ -1191,6 +1337,7 @@ async def chat_stats(
     for d in probe_daily.values():
         d["median_ms"] = _percentile(d.pop("_ms"), 50)
     probe_ok_ms = [r["duration_ms"] for r in probes if r["status"] == "ok" and r["duration_ms"] is not None]
+    visitors = _visitor_stats([r for r in rows if r["source"] == "chat" and r["browser"] is not None])
     try:
         kb = await list_documents(True)
         knowledge_base = {
@@ -1220,6 +1367,8 @@ async def chat_stats(
             "retention_days": STATS_RETENTION_DAYS,
         },
         "knowledge_base": knowledge_base,
+        "tracking_since": datetime.utcfromtimestamp(tracking_ts).isoformat() + "Z" if tracking_ts else None,
+        "visitors": visitors,
         "usage": {
             "questions": len(rows),
             "answered": len(answered),
@@ -1227,6 +1376,9 @@ async def chat_stats(
             "aborted": sum(r["status"] == "aborted" for r in rows),
             "no_context": sum(r["chunks_used"] == 0 for r in answered),
             "context_known": sum(r["chunks_used"] is not None for r in answered),
+            "answers_logged": sum(r["answer"] is not None for r in rows),
+            "declined": sum("declined" in r["flags"] for r in rows),
+            "citation_leaks": sum("citation" in r["flags"] for r in rows),
             "p50_ms": _percentile(durations, 50),
             "p95_ms": _percentile(durations, 95),
             "daily": list(daily.values()),

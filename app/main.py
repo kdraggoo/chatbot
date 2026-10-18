@@ -1069,26 +1069,23 @@ async def delete_document(req: DeleteRequest, _: bool = Depends(verify_admin_api
                 else:
                     file_path = file_path.resolve()
             doc_id = hashlib.sha1(str(file_path).encode("utf-8")).hexdigest()
-            filter_field = "doc_id"
+            # Admin uploads store a non-path source ("chat-20261009-192448") whose doc_id
+            # isn't this hash, so match the stored source_path too
+            filter_field = "doc_id or source_path"
             filter_value = doc_id
             identifier = f"source_path={req.source_path} (doc_id={doc_id})"
+            filter_condition = Filter(should=[
+                FieldCondition(key="doc_id", match=MatchValue(value=doc_id)),
+                FieldCondition(key="source_path", match=MatchValue(value=req.source_path)),
+            ])
         else:
             # Use provided doc_id
             filter_field = "doc_id"
             filter_value = req.doc_id
             identifier = f"doc_id={req.doc_id}"
-        
+            filter_condition = Filter(must=[FieldCondition(key="doc_id", match=MatchValue(value=req.doc_id))])
+
         logger.info(f"Deleting document: {identifier}")
-        
-        # Create filter to match all chunks with this doc_id
-        filter_condition = Filter(
-            must=[
-                FieldCondition(
-                    key=filter_field,
-                    match=MatchValue(value=filter_value),
-                ),
-            ],
-        )
         
         # Delete points matching the filter
         result = qdrant_client.delete(
@@ -1096,11 +1093,10 @@ async def delete_document(req: DeleteRequest, _: bool = Depends(verify_admin_api
             points_selector=FilterSelector(filter=filter_condition),
         )
         
-        # Count deleted points (result.operation_id indicates success, but doesn't give count)
-        # We'll do a quick scroll to verify deletion
+        # The delete result has no count, so check nothing matching is left
         search_result = qdrant_client.scroll(
             collection_name=QDRANT_COLLECTION,
-            query_filter=filter_condition,
+            scroll_filter=filter_condition,
             limit=1,
         )
         remaining_count = len(search_result[0])

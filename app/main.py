@@ -44,6 +44,8 @@ GEN_MODEL = os.getenv("GEN_MODEL", "llama3.1:8b")
 # GEN_TEMPERATURE=0 answers the same prompt the same way every time.
 GEN_OPTIONS = {k: cast(os.environ[e]) for k, e, cast in
                (("temperature", "GEN_TEMPERATURE", float), ("seed", "GEN_SEED", int)) if os.getenv(e)}
+# GEN_THINK=false turns off reasoning for thinking models (qwen3); unset sends nothing, as before.
+GEN_EXTRA = {"think": os.environ["GEN_THINK"].lower() in ("1", "true", "yes")} if os.getenv("GEN_THINK") else {}
 EMBED_MODEL = os.getenv("EMBED_MODEL", "bge-m3")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "docs")
 MAX_QUERY_LENGTH = int(os.getenv("MAX_QUERY_LENGTH", "2000"))
@@ -87,18 +89,19 @@ def is_near_duplicate(words: set, chosen: List[set]) -> bool:
 # so any bracketed text counts, except a Markdown link "[text](url)".
 _CITE = r"(?:\[\d+(?:\s*[,\-–]\s*\d+)*\]|\[[^\[\]\n\d][^\[\]\n]{0,119}\](?!\())"
 _CITES = rf"{_CITE}(?:(?:\s*,)?\s*(?:and|&)?\s*{_CITE})*"  # "[1], [2], and [4]"
-_SECTIONS = r"(?:the\s+)?(?:context\s+)?(?:provided\s+)?(?:in\s+)?(?:(?:sections?|chunks?|sources?)\s*)?"
+_SECTIONS = r"(?:the\s+)?(?:context\s+)?(?:provided\s+)?(?:(?:in|under)\s+)?(?:the\s+)?(?:(?:sections?|chunks?|sources?)\s*)?"
 _CITATION_RULES = [
     # "These are mentioned in sections [3], [4] and [6] of the context." (whole sentence)
-    (re.compile(rf"[ \t]*\b(?:These|This|All of these)\b[^.\n]*?\bin\s+{_SECTIONS}{_CITES}[^.\n]*\.", re.I), ""),
+    # qwen3: "This is explicitly stated in the context under the section [1]."
+    (re.compile(rf"[ \t]*\b(?:These|This|All of these)\b[^.\n]*?\bin\s+{_SECTIONS}{_CITES}[^.\n]*\.[\"\u201d]?", re.I), ""),
     # "(as seen in [1] and [2])"
     (re.compile(rf"[ \t]*\(\s*(?:as\s+)?(?:(?:seen|mentioned|stated|noted|listed|described)\s+)?(?:in\s+)?{_SECTIONS}{_CITES}\s*\)", re.I), ""),
     # "Additionally, section [7] mentions that Kevin", "However, [4] mentions that"
     (re.compile(rf"(?:(?<=^)|(?<=[.!?,:]\s)|(?<=\n)){_SECTIONS}{_CITES}\s+(?:also\s+)?(?:mentions|states|notes|says|shows|lists|indicates)\s+(?:that\s+)?", re.I | re.M), "\0"),
     # "whereas section [8] mentions similar results", "Note that section [4] also mentions"
     (re.compile(rf"\b{_SECTIONS}{_CITES}\s+((?:also\s+)?(?:mentions|states|notes|says|shows|lists|indicates))\b", re.I), r"his resume \1"),
-    # "According to section [1], ", "in sections [1] and [2] of the context", "as mentioned in section [2]"
-    (re.compile(rf"[ \t]*\b(?:as\s+(?:stated|mentioned|seen|noted|described|listed)\s+in|according\s+to|based\s+on|in|from)\s+"
+    # "According to section [1], ", "in sections [1] and [2] of the context", "as mentioned in section [2]", "listed under [3]"
+    (re.compile(rf"[ \t]*\b(?:as\s+(?:stated|mentioned|seen|noted|described|listed)\s+(?:in|under)|according\s+to|based\s+on|in|from|under)\s+"
                 rf"{_SECTIONS}{_CITES}(?:\s+of\s+(?:the|his)\s+[\w ]+?(?=[,.;:\n]))?\s*,?[ \t]*", re.I), " \0"),
     # "[Kevin - Career | Summary], Kevin has run" (a marker opening a sentence)
     (re.compile(rf"(^[ \t]*(?:(?:[-*]|\d+\.)[ \t]+)?|(?<=[.!?]\s))[ \t]*{_CITES}\s*[,:]?[ \t]*", re.M), "\\1\0"),
@@ -795,7 +798,7 @@ async def _stream_ollama_tokens(prompt: str, timeout: float):
         async with http_client.stream(
             'POST',
             f"{OLLAMA_URL.rstrip('/')}/api/generate",
-            json={"model": GEN_MODEL, "prompt": prompt, "stream": True, "options": GEN_OPTIONS},
+            json={"model": GEN_MODEL, "prompt": prompt, "stream": True, "options": GEN_OPTIONS, **GEN_EXTRA},
             timeout=stream_timeout,
         ) as response:
             response.raise_for_status()
@@ -908,7 +911,7 @@ async def chat(request: Request, req: ChatRequest, stream: bool = Query(False, d
         generate_timeout = httpx.Timeout(timeout_seconds, connect=30.0)
         response = await http_client.post(
             f"{OLLAMA_URL.rstrip('/')}/api/generate",
-            json={"model": GEN_MODEL, "prompt": prompt, "stream": False, "options": GEN_OPTIONS},
+            json={"model": GEN_MODEL, "prompt": prompt, "stream": False, "options": GEN_OPTIONS, **GEN_EXTRA},
             timeout=generate_timeout,
         )
         response.raise_for_status()

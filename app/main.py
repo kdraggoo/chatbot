@@ -46,6 +46,22 @@ GEN_OPTIONS = {k: cast(os.environ[e]) for k, e, cast in
                (("temperature", "GEN_TEMPERATURE", float), ("seed", "GEN_SEED", int)) if os.getenv(e)}
 # GEN_THINK=false turns off reasoning for thinking models (qwen3); unset sends nothing, as before.
 GEN_EXTRA = {"think": os.environ["GEN_THINK"].lower() in ("1", "true", "yes")} if os.getenv("GEN_THINK") else {}
+
+
+def load_facts(path: str) -> str:
+    """Render FACTS_FILE (summary lines and an employer table) as a short block for every answer prompt."""
+    import yaml
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    lines = ["Key facts about Kevin:"] + [f"- {line}" for line in data.get("summary", [])]
+    if data.get("employers"):
+        lines.append("Employers, most recent first:")
+        lines += [f"- {e['dates']}: {e['employer']}, {e['title']}, {e['location']}" for e in data["employers"]]
+    return "\n".join(lines) + "\n\n"
+
+
+# FACTS_FILE (e.g. /data/facts.yaml) adds key facts ahead of the retrieved context; unset, prompts are unchanged.
+FACTS_TEXT = load_facts(os.environ["FACTS_FILE"]) if os.getenv("FACTS_FILE") else ""
 EMBED_MODEL = os.getenv("EMBED_MODEL", "bge-m3")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "docs")
 MAX_QUERY_LENGTH = int(os.getenv("MAX_QUERY_LENGTH", "2000"))
@@ -755,7 +771,7 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
             "For each employer, provide: Company Name – Job Title, Location\n"
             "Include all employers: full-time, contract, consulting, internships.\n"
             "List multiple positions at the same company separately.\n\n"
-            f"Context:\n{context_text}\n\n"
+            f"{FACTS_TEXT}Context:\n{context_text}\n\n"
             f"Question: {query}\n\n"
             "Provide a numbered list:\n"
         )
@@ -763,7 +779,7 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
         # General list query
         prompt = (
             "Extract and list ALL items from the context. Be COMPLETE and EXHAUSTIVE.\n\n"
-            f"Context:\n{context_text}\n\n"
+            f"{FACTS_TEXT}Context:\n{context_text}\n\n"
             f"Question: {query}\n\n"
             "Provide a numbered list with full details for each item:\n"
         )
@@ -776,7 +792,7 @@ async def _prepare_rag_context(query: str) -> tuple[str, str, List[dict]]:
             "- If information is missing, say so explicitly\n"
             "- Provide clear, accurate answers\n"
             "- Cite relevant sections using [1], [2], etc. when helpful\n\n"
-            f"Context:\n{context_text}\n\n"
+            f"{FACTS_TEXT}Context:\n{context_text}\n\n"
             f"Question: {query}\n\n"
             "Answer:"
         )

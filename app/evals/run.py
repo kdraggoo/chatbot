@@ -62,6 +62,7 @@ def load_cases(path: Path, tags: list[str], ids: list[str]) -> list[dict]:
         c["facts"] = [f if isinstance(f, list) else [f] for f in c.get("facts", [])]
         c["facts"] = [[str(a) for a in alts] for alts in c["facts"]]
         c.setdefault("min_facts", len(c["facts"]))
+        c.setdefault("require", [])
         c.setdefault("refuse", False)
         c.setdefault("forbid", [])
         c.setdefault("tags", [])
@@ -137,7 +138,8 @@ def score_answer(r: dict, case: dict):
         found, missing = find_facts(r["answer"], case["facts"])
         r["answer_found"], r["answer_missing"] = found, missing
         r["answer_recall"] = len(found) / len(case["facts"])
-        r["answer_pass"] = len(found) >= case["min_facts"] and not r["forbidden_hits"]
+        r["required_missing"] = [f for f in case["require"] if f not in found]
+        r["answer_pass"] = len(found) >= case["min_facts"] and not r["required_missing"] and not r["forbidden_hits"]
 
 
 def mark(v) -> str:

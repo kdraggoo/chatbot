@@ -8,6 +8,8 @@
 #             is a list means "any one of these". Every fact must appear verbatim
 #             in at least one document in data/, so retrieval can be checked too.
 #   min_facts how many facts must be found to pass (default: all of them)
+#   require   facts (named by their first alternative) the answer must contain even when
+#             min_facts is met, e.g. the most recent employers
 #   refuse    true when the knowledge base can't answer and the bot should say so
 #   forbid    strings that must NOT appear in the answer (hallucination guards)
 #
@@ -21,6 +23,7 @@
   tags: [employment]
   facts: [Rocket, Webgility, Infor, Draggoo Consulting, CLM]
   min_facts: 3
+  require: [Rocket, Webgility, Infor]  # qwen3:1.7b passed with 3 of 5 while leaving out Rocket
 
 - id: employers-list
   query: List Kevin's historical employers.
